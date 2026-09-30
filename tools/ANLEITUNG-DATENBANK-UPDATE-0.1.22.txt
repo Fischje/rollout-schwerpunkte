@@ -1,0 +1,40 @@
+DATENBANK-UPDATE AUF VERSION 0.1.22
+===================================
+
+Das Patch akzeptiert bestehende Datenbanken aus Version 0.1.20
+(Schema 16) und Version 0.1.21 (Schema 21).
+
+1. Webanwendung während des Updates nicht verwenden.
+2. Anwendungsdateien der Version 0.1.22 einspielen, die Anwendung aber noch
+   nicht wieder freigeben.
+3. In den Anwendungsordner wechseln, zum Beispiel:
+
+   cd /var/www/rollout-schwerpunkte
+
+4. Patch ausführen:
+
+   php tools/update-database-0.1.22.php data/rollout.sqlite
+
+5. Die Anwendung erst nach der Meldung „Datenbank erfolgreich auf
+   Schema-Version 22 aktualisiert“ wieder freigeben.
+
+Das Skript erstellt vor jeder Änderung automatisch eine vollständige Sicherung:
+
+rollout.sqlite.backup-before-0.1.22-JJJJMMTT-HHMMSS
+
+Das Zielmodell kennt ausschließlich Projektleistungen. Bisherige
+rolloutobjektbezogene Rückmeldungen werden auf der jeweiligen Projektleistung
+zusammengeführt. Termin- und Bemerkungstexte werden dabei mit dem Namen des
+bisherigen Rolloutobjekts gekennzeichnet. Aus der bisherigen Klassenlogik werden
+anfängliche Nutzungs-Haken der Projektleistung je Rolloutobjekt gebildet.
+Zusätzliche Leistungen, die in Schema 16 noch direkt einem Rolloutobjekt
+gehörten, werden dem zugehörigen Projekt zugeordnet; ihr bisheriges
+Rolloutobjekt bleibt als Nutzung angehakt.
+
+Nach dem Patch sind die alten Tabellen project_standard_services und
+support_matrix sowie die alten Ebenenfelder aus support_services entfernt.
+Der normale Anwendungsstart führt keine weiteren Migrationen aus.
+
+Bei einer unerwarteten Struktur oder beschädigten Datenbank bricht das Skript
+ab. Fremdschlüssel, Integrität und die Anzahl der zentralen Stammdatensätze
+werden geprüft; anschließend wird die Datenbank optimiert.

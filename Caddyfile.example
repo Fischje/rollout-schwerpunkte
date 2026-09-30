@@ -1,0 +1,6 @@
+rollout.example.de {
+    root * /var/www/rollout-schwerpunkte/public
+    encode zstd gzip
+    php_fastcgi unix//run/php/php8.3-fpm.sock
+    file_server
+}

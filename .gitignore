@@ -1,0 +1,12 @@
+.env
+.env.*
+config.php
+vendor/
+node_modules/
+*.bak
+*.backup*
+*.sqlite*
+*.db
+*.log
+data/*
+!data/README.txt

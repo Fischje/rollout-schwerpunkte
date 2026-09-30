@@ -1,0 +1,4 @@
+Projekt;Datensatz;Rolloutobjekt;Rolloutbeginn;Rolloutende;Rolloutklasse Bankfachlich;Rolloutklasse Verbunddienstleister;Projektleitung;TPL Rollout;Unterstützungsleistung;Leistungsklasse Bankfachlich;Leistungsklasse Verbunddienstleister;Genutzt für Rolloutobjekte;Leistungserbringer;Ansprechpartner;Telefonnummer;Angeboten;Obligatorisch;Bereitstellungsart;Anderer Regionalverband / externer Dienstleister;Termin / Zeitraum;Bemerkung
+Beispielprojekt;Projekt;;;;;;Max Mustermann;Erika Musterfrau;;;;;SVB;Anna Ansprechpartnerin;089 123456;;;;;;
+Beispielprojekt;Rolloutobjekt;Beispiel-Rolloutobjekt;01.01.2027;30.06.2027;B;2;Max Mustermann;Erika Musterfrau;;;;;;;;;;;;;
+Beispielprojekt;Projektleistung;;;;;;;;Vertiefungsworkshop;B;;Beispiel-Rolloutobjekt;SVB;;;Ja;Nein;Eigene Bereitstellung;;Oktober 2027;Zwei Termine vorgesehen
