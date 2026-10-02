@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.36
+# Rollout-Schwerpunkte 0.1.37
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -170,7 +170,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.36**. Die dritte Stelle wird bei jeder Auslieferung
+Aktueller Stand: **0.1.37**. Die dritte Stelle wird bei jeder Auslieferung
 automatisch erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.
 
 ## Sicherheit

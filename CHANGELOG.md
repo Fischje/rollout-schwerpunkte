@@ -1,5 +1,15 @@
 # Änderungsverlauf
 
+## 0.1.37
+
+- Importassistent: Zeilen, deren Leistungswert ausdrücklich nicht übernommen wird, entfallen im Planungs- und Strukturimport vollständig; zuvor überschrieben sie Beginn, Ende und Notiz des Rolloutobjekts
+- Zeitraum und Klasse in Leistungsauswahl-Zeilen der TPL-/PL-Datei werden nicht mehr an die Leistung weitergereicht
+- Objektangaben (Name, Zeitraum, Klasse) in einer Leistungsauswahl-Zeile werden nicht mehr still verworfen, sondern rot als Hinweis angezeigt; eine Zeile ohne Leistung erscheint dann nicht ausgewählt
+- Leistungen in der Zeile des Rolloutobjekts (Spalten Katalogleistung oder außerhalb des Katalogs) werden als Leistungszeile erkannt und müssen zugeordnet werden, statt zu entfallen
+- Hinweise bei Freitext außerhalb des Katalogs, der in derselben Zeile wie eine Katalogleistung steht oder Kommas, Doppelpunkte beziehungsweise sehr viel Text enthält und deshalb wahrscheinlich ein Kommentar ist
+- Sammelhinweis oberhalb der Zuordnungstabelle mit der Zahl der auffälligen Zeilen
+- Der Planungsimport prüft jetzt auch ohne Leistungserbringer, ob eine Standardleistung zur bankfachlichen Klasse des Rolloutobjekts passt, und bricht andernfalls mit einer verständlichen Meldung ab
+
 ## 0.1.36
 
 - neuer Schalter beim TPL-/PL-Export für Verbunddienstleisterklassen und zugehörige Leistungen
