@@ -1,5 +1,10 @@
 # Änderungsverlauf
 
+## 0.1.39
+
+- Die Versionsnummer oben links ist anklickbar und öffnet den Änderungsverlauf als kleines Fenster; die aktuelle Version ist aufgeklappt
+- Die Programmversion wird jetzt aus dem obersten Eintrag der Datei `CHANGELOG.md` gelesen und nicht mehr aus der serverseitigen `config.php`; mit jeder Auslieferung genügt ein neuer Changelog-Eintrag
+
 ## 0.1.38
 
 - Importassistent: neue Spalte „Bisher → neu“ je Zeile mit Gegenüberstellung der aktuellen Datenbankwerte und der importierten Werte; geänderte Felder sind hervorgehoben und aktualisieren sich live, wenn Zuordnung oder Werte in der Zeile bearbeitet werden

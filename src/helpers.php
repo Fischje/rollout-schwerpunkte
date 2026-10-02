@@ -390,3 +390,20 @@ function canonical_cumulative_class_selection(array $selected, array $ordered): 
     }
     return [];
 }
+
+/** Liest CHANGELOG.md: [['version'=>'0.1.39','items'=>['…']], …], neueste zuerst. */
+function changelog_entries(): array {
+    $path = dirname(__DIR__) . '/CHANGELOG.md';
+    $text = is_file($path) ? (string)file_get_contents($path) : '';
+    $entries = [];
+    foreach (preg_split('/\R/u', $text) ?: [] as $line) {
+        if (preg_match('/^##\s+(\d+\.\d+\.\d+)\s*$/u', $line, $match)) { $entries[] = ['version' => $match[1], 'items' => []]; continue; }
+        if ($entries && preg_match('/^-\s+(.+)$/u', $line, $match)) $entries[count($entries) - 1]['items'][] = trim($match[1]);
+    }
+    return $entries;
+}
+
+/** Die Programmversion ist der oberste Eintrag im CHANGELOG.md. */
+function app_version(?string $fallback = null): string {
+    return changelog_entries()[0]['version'] ?? ($fallback ?? '0.0.0');
+}
