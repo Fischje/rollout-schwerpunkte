@@ -1,5 +1,15 @@
 # Änderungsverlauf
 
+## 0.1.38
+
+- Importassistent: neue Spalte „Bisher → neu“ je Zeile mit Gegenüberstellung der aktuellen Datenbankwerte und der importierten Werte; geänderte Felder sind hervorgehoben und aktualisieren sich live, wenn Zuordnung oder Werte in der Zeile bearbeitet werden
+- Je Zeile steht jetzt die Aktion „Übernehmen“ oder „Nicht übernehmen“ zur Wahl; alle Felder bleiben vor dem Import bearbeitbar
+- Sammelaktionen: alle übernehmen, alle abwählen, Zeilen ohne Änderung abwählen, Zeilen mit Hinweis abwählen; Zähler zeigt übernommene Zeilen und Zeilen mit Änderung
+- Bei einer neuen Leistung kann „Als Standardleistung in den zentralen Katalog aufnehmen“ angehakt werden (TPL-/PL-Import); Klasse und Zuständigkeit stammen aus der Zeile, Klasse A ist wie im Katalog obligatorisch
+- Neue Option „Datei ist maßgeblich“ für den TPL-/PL-Import: Leistungen, die am Rolloutobjekt eingetragen waren und in der Datei nicht mehr stehen, werden entfernt; fehlt danach jede Nutzung im Projekt, entfällt auch die Projektleistung samt Angaben der Leistungserbringer
+- Obligatorische Leistungen (Klasse A, Basisklassen) und in der Datei genannte, aber abgewählte Zeilen bleiben erhalten; Verbunddienstleisterleistungen werden nur berücksichtigt, wenn die Datei diese Spalten enthält
+- Entfernungen erscheinen vorab in der Änderungsvorschau als „Wird entfernt“; das Ergebnis nennt die Zahl der entfernten Zuordnungen
+
 ## 0.1.37
 
 - Importassistent: Zeilen, deren Leistungswert ausdrücklich nicht übernommen wird, entfallen im Planungs- und Strukturimport vollständig; zuvor überschrieben sie Beginn, Ende und Notiz des Rolloutobjekts

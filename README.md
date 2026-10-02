@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.37
+# Rollout-Schwerpunkte 0.1.38
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -69,6 +69,14 @@ Neue oder unklare Leistungen werden nicht ungeprüft angelegt: Beim Rückimport
 fragt der Importassistent, ob eine bestehende Leistung zugeordnet, eine neue
 nicht standardisierte Projektleistung angelegt oder der Wert ausgelassen werden
 soll.
+
+Im Prüfschritt zeigt die Spalte „Bisher → neu“ je Zeile den aktuellen Datenbankwert
+neben dem neuen Wert. Jede Zeile kann einzeln übernommen oder nicht übernommen
+und vorher bearbeitet werden. Neue Leistungen lassen sich dort auch als
+Standardleistung in den zentralen Katalog aufnehmen. Beim TPL-/PL-Import kann
+zusätzlich „Datei ist maßgeblich“ gewählt werden: Nicht mehr genannte Leistungen
+werden dann am Rolloutobjekt entfernt, obligatorische Leistungen (Klasse A)
+bleiben aber erhalten.
 
 Der Gesamtimport ist transaktional. Bei einem Fehler wird die gesamte Datei
 zurückgerollt. Rückmeldungen eines Leistungserbringers verändern keine Angaben
@@ -170,7 +178,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.37**. Die dritte Stelle wird bei jeder Auslieferung
+Aktueller Stand: **0.1.38**. Die dritte Stelle wird bei jeder Auslieferung
 automatisch erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.
 
 ## Sicherheit
