@@ -1,5 +1,10 @@
 # Änderungsverlauf
 
+## 0.1.40
+
+- Import-Prüftabelle ist nicht mehr unbegrenzt breit: Spaltenköpfe und Vergleichsspalte brechen um, Eingabefelder passen sich der Spaltenbreite an
+- Standardmäßig zeigt die Tabelle nur die für die Entscheidung nötigen Spalten; Projekt, Bemerkung und Detailspalten lassen sich mit „Alle Spalten anzeigen“ einblenden und bleiben auch ausgeblendet bearbeitbar und Teil des Imports
+
 ## 0.1.39
 
 - Die Versionsnummer oben links ist anklickbar und öffnet den Änderungsverlauf als kleines Fenster; die aktuelle Version ist aufgeklappt
