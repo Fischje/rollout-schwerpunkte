@@ -1,5 +1,13 @@
 # Änderungsverlauf
 
+## 0.1.42
+
+- Neue Leistungen werden im Importassistenten über ein eigenes Feld „Neue Leistung festlegen“ angelegt: Haken für den zentralen Standardkatalog, Auswahl der Erbringer (Regionalverbände, FI, DSV) sowie je Erbringer die Ab-Klasse (bankfachlich A–D, FI 1–3, DSV-Schema)
+- Die Spalte „Zuständig bei neuer Leistung“ entfällt; Klasse und Zuständigkeit werden nur bei den gewählten Erbringern gespeichert, auch die DSV-Klasse im TPL-/PL-Import
+- „Vorhandenes Rolloutobjekt“ zeigt nur noch den Namen des Rolloutobjekts ohne Projektnamen
+- In der Planungsansicht stehen Beginn, Ende und Klasse des Rolloutobjekts auch an jeder Leistungszeile darunter (schreibgeschützt, aktualisieren sich live bei Änderungen an der Objektzeile); Objektzeilen sind farbig hervorgehoben
+- Verständlichere Fehlermeldung, wenn eine Leistung nicht zur Klasse des Rolloutobjekts passt
+
 ## 0.1.41
 
 - Excel-Import erkennt durchgestrichene Zellen (Zellformat und Textabschnitte); in TPL-/PL-Dateien gelten durchgestrichene Leistungen als von der TPL gestrichen
