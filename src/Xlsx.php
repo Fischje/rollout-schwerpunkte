@@ -6,41 +6,88 @@ final class Xlsx
 {
     public static function read(string $path): array
     {
+        return self::readDetailed($path)['rows'];
+    }
+
+    /**
+     * Liest das erste Tabellenblatt und erkennt zusätzlich durchgestrichene Zellen.
+     * @return array{rows: array<int, array<int, string>>, strike: array<int, array<int, bool>>}
+     */
+    public static function readDetailed(string $path): array
+    {
         $entries = self::readZip($path);
         $shared = [];
+        $sharedStrike = [];
         if (isset($entries['xl/sharedStrings.xml'])) {
             $doc = simplexml_load_string($entries['xl/sharedStrings.xml']);
             if ($doc === false) throw new RuntimeException('Die Excel-Zeichenkette ist beschädigt.');
             foreach ($doc->si as $si) {
                 $text = '';
+                $struck = false;
                 if (isset($si->t)) $text = (string)$si->t;
-                else foreach ($si->r as $run) $text .= (string)$run->t;
+                else {
+                    $runs = 0;
+                    $struckRuns = 0;
+                    foreach ($si->r as $run) {
+                        $text .= (string)$run->t;
+                        if (trim((string)$run->t) === '') continue;
+                        $runs++;
+                        if (isset($run->rPr->strike) && self::flagOn($run->rPr->strike)) $struckRuns++;
+                    }
+                    $struck = $runs > 0 && $runs === $struckRuns;
+                }
                 $shared[] = $text;
+                $sharedStrike[] = $struck;
             }
         }
+        $styleStrike = self::strikeStyles($entries['xl/styles.xml'] ?? null);
         $sheet = $entries['xl/worksheets/sheet1.xml'] ?? null;
         if ($sheet === null) throw new RuntimeException('Das erste Tabellenblatt fehlt.');
         $doc = simplexml_load_string($sheet);
         if ($doc === false) throw new RuntimeException('Das erste Tabellenblatt ist beschädigt.');
         $rows = [];
+        $strike = [];
         foreach ($doc->sheetData->row as $row) {
             $values = [];
+            $struckCells = [];
             foreach ($row->c as $cell) {
                 $ref = (string)$cell['r'];
                 preg_match('/^[A-Z]+/', $ref, $match);
                 $index = self::columnIndex($match[0] ?? 'A');
                 $type = (string)$cell['t'];
                 $value = $type === 'inlineStr' ? (string)$cell->is->t : (string)$cell->v;
-                if ($type === 's') $value = $shared[(int)$value] ?? '';
+                $struck = !empty($styleStrike[(int)$cell['s']]);
+                if ($type === 's') { $sharedIndex = (int)$value; $value = $shared[$sharedIndex] ?? ''; $struck = $struck || !empty($sharedStrike[$sharedIndex]); }
                 if ($type === 'b') $value = $value === '1' ? 'Ja' : 'Nein';
                 $values[$index] = $value;
+                if ($struck && trim($value) !== '') $struckCells[$index] = true;
             }
             if ($values) {
                 $max = max(array_keys($values));
                 $rows[] = array_map(fn(int $i): string => (string)($values[$i] ?? ''), range(0, $max));
+                $strike[count($rows) - 1] = $struckCells;
             }
         }
-        return $rows;
+        return ['rows' => $rows, 'strike' => $strike];
+    }
+
+    private static function flagOn(\SimpleXMLElement $node): bool
+    {
+        $value = isset($node['val']) ? strtolower((string)$node['val']) : '1';
+        return !in_array($value, ['0', 'false'], true);
+    }
+
+    /** Liefert je Zellformat-Index (cellXfs), ob dessen Schrift durchgestrichen ist. */
+    private static function strikeStyles(?string $xml): array
+    {
+        if ($xml === null) return [];
+        $doc = simplexml_load_string($xml);
+        if ($doc === false) return [];
+        $fonts = [];
+        if (isset($doc->fonts->font)) foreach ($doc->fonts->font as $font) $fonts[] = isset($font->strike) && self::flagOn($font->strike);
+        $styles = [];
+        if (isset($doc->cellXfs->xf)) foreach ($doc->cellXfs->xf as $index => $xf) $styles[] = !empty($fonts[(int)$xf['fontId']]);
+        return $styles;
     }
 
     public static function binary(array $rows, string $sheetName = 'Rolloutobjekte', array $options = []): string
