@@ -1,5 +1,13 @@
 # Änderungsverlauf
 
+## 0.1.44
+
+- Rückmeldungen von FI und DSV: Der Prüfschritt zeigt statt „Klasse Bankfachlich“ die Spalte „Rolloutklasse FI / DSV“ mit einer Auswahl aus dem Klassenschema des zugeordneten Leistungserbringers (FI 1–3, DSV-Schema, jeweils inklusive Klasse 0)
+- Die Klasse wird an der Objektzeile gewählt und an den Leistungszeilen darunter angezeigt; eine Änderung wirkt sofort auch auf diese Zeilen
+- „Bisher → neu“ zeigt die Änderung der FI-/DSV-Klasse; weicht der Zeitraum in der Datei ab, erscheint ein Hinweis, dass er in dieser Phase nicht übernommen wird (Beginn und Ende zeigen den Stand der Datenbank)
+- Spalten nur für Regionalverbände (Angeboten, Bereitstellungsart, anderer RV / externer DL) sind ausgeblendet, solange keine Datei einem Regionalverband zugeordnet ist; FI-/DSV-Leistungen gelten im Vergleich korrekt als „Geplant: Ja“
+- Korrektur: Bei gleichlautenden Klassen von FI und DSV (z. B. „2“) wird jetzt die Klasse des richtigen Leistungserbringers vorbelegt
+
 ## 0.1.43
 
 - Neues Flag „Immer enthalten“ an Standard- und zusätzlichen Projektleistungen (Katalog-Editor, Leistungseditor, Katalog-Excel mit neuer Spalte; ältere Katalogdateien ohne Spalte bleiben importierbar)

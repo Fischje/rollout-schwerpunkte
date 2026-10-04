@@ -83,3 +83,4 @@ body { background:var(--spark-light); color:var(--spark-dark); }
 .catalog-service-actions { align-self:center; }
 @media (max-width: 768px) { .container-fluid.page { padding-left:1rem!important; padding-right:1rem!important; } }
 .import-review-table tr.import-master-row > td { background-color:#e9edf5; }
+.import-review-table .auto-hidden { display:none; }
