@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.48
+# Rollout-Schwerpunkte 0.1.49
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -157,6 +157,16 @@ Der normale Anwendungsstart enthält keine historischen Migrationsroutinen. Eine
 Datenbank mit einer anderen Schema-Version wird mit einem klaren Hinweis auf das
 Wartungsskript abgewiesen.
 
+## Übersicht Leistungserbringung
+
+Die Seite „Übersicht“ zeigt je Projekt, welche bankfachlichen Leistungen die
+TPL vorsieht und welcher Regionalverband sie selbst, über einen anderen Verband
+oder einen externen Dienstleister bereitstellt. Offene Punkte (keine Angabe
+oder keine Bereitstellung) erscheinen zusätzlich je Rolloutobjekt und lassen
+sich als Excel exportieren. Eigene Abschnitte zeigen die geplanten Leistungen
+von FI und DSV je Rolloutobjekt. RV-Abfragedateien und Gesamtexport weisen je
+Leistung aus, wer sie erbringt.
+
 ## Importspalten
 
 Die Anwendung erkennt insbesondere:
@@ -189,7 +199,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.48**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.49**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.

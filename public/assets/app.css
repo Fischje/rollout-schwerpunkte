@@ -84,3 +84,19 @@ body { background:var(--spark-light); color:var(--spark-dark); }
 @media (max-width: 768px) { .container-fluid.page { padding-left:1rem!important; padding-right:1rem!important; } }
 .import-review-table tr.import-master-row > td { background-color:#e9edf5; }
 .import-review-table .auto-hidden { display:none; }
+.ov-table th { white-space:normal!important; vertical-align:bottom; }
+.ov-rv-head { min-width:3.6rem; font-size:.7rem!important; }
+.ov-cell { display:inline-flex; align-items:center; justify-content:center; width:1.9rem; height:1.9rem; border-radius:.45rem; font-weight:700; font-size:.9rem; border:1px solid transparent; }
+.ov-self { background:#e3f4e8; color:#1d6b38; border-color:#b9e2c5; }
+.ov-other { background:#e6effa; color:#1f4f8f; border-color:#bcd2ef; }
+.ov-external { background:#fff1d9; color:#8a5a00; border-color:#f3d39a; }
+.ov-mandatory { background:#e9eaec; color:#3b3f45; border-color:#cfd2d6; }
+.ov-open { background:#fff7cc; color:#7a5d00; border-color:#f1d75c; }
+.ov-none { background:#fde4e4; color:#9b1c1c; border-color:#f3b8b8; }
+.ov-na, .ov-empty { background:transparent; color:#b4b8bd; }
+.ov-legend { display:inline-flex; align-items:center; gap:.35rem; border:1px solid #e3e5e8; border-radius:999px; padding:.15rem .6rem .15rem .2rem; background:#fff; }
+.ov-legend .ov-cell { width:1.4rem; height:1.4rem; font-size:.75rem; }
+.ov-chip { display:inline-block; background:#f1f2f4; border-radius:999px; padding:.1rem .55rem; margin:0 .25rem .25rem 0; }
+.ov-row-gap > td:first-child { box-shadow: inset 4px 0 0 #f1c40f; }
+.ov-object-gap { background:#fffbea; border-color:#f1d75c!important; }
+.ov-object-ok { background:#f3faf5; }

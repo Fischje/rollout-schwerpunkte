@@ -446,3 +446,37 @@ function service_flag_badges(array $service): string {
     if ($base) $badges .= '<span class="badge text-bg-danger" title="Basisklasse: automatisch obligatorisch, die Leistungserbringer werden nicht nach der Bereitstellung gefragt">Obligatorisch (Basisklasse ' . e(implode(', ', $base)) . ')</span>';
     return $badges;
 }
+
+/** Zuständige Leistungserbringer einer Leistung als Klartext, z. B. „Regionalverbände (bankfachlich) · FI“. */
+function service_provider_summary(array $service): string {
+    $labels = ['RV' => 'Regionalverbände (bankfachlich)', 'FI' => 'FI', 'DSV' => 'DSV'];
+    $parts = [];
+    foreach ($labels as $type => $label) if (in_array($type, (array)($service['provider_targets'] ?? []), true)) $parts[] = $label;
+    return implode(' · ', $parts);
+}
+
+/**
+ * Stand der Leistungserbringung eines Leistungserbringers für eine Projektleistung.
+ * Rückgabe: ['key'=>…, 'label'=>…, 'by'=>…]; key ∈ mandatory, self, other_rv, external, none, open, planned, not_planned, na.
+ * Als Lücke gelten „open“ (keine Angabe) und „none“ (keine Bereitstellung).
+ */
+function service_provision_status(array $service, array $provider, ?array $cell, bool $applicable): array {
+    if (!$applicable) return ['key' => 'na', 'label' => 'Nicht relevant', 'by' => ''];
+    $type = (string)($provider['type'] ?? '');
+    $name = (string)($provider['name'] ?? '');
+    if (service_is_mandatory_for_provider($service, $provider)) return ['key' => 'mandatory', 'label' => 'Verbindlich (obligatorisch)', 'by' => $name];
+    if ($type === 'RV' && !empty($service['requires_delivery_source'])) {
+        $mode = normalize_delivery_mode((string)($cell['delivery_mode'] ?? ''));
+        $partner = trim((string)($cell['delivery_partner'] ?? ''));
+        return match ($mode) {
+            'self' => ['key' => 'self', 'label' => 'Zugesagt – selbst', 'by' => $name],
+            'other_rv' => ['key' => 'other_rv', 'label' => 'Zugesagt – über anderen Regionalverband', 'by' => $partner !== '' ? $partner . ' (für ' . $name . ')' : $name],
+            'external' => ['key' => 'external', 'label' => 'Zugesagt – externer Dienstleister', 'by' => ($partner !== '' ? $partner : 'externer Dienstleister') . ' (für ' . $name . ')'],
+            'none' => ['key' => 'none', 'label' => 'Keine Bereitstellung', 'by' => ''],
+            default => ['key' => 'open', 'label' => 'Offen – noch keine Angabe', 'by' => ''],
+        };
+    }
+    if ($cell === null) return $type === 'RV' ? ['key' => 'open', 'label' => 'Offen – noch keine Angabe', 'by' => ''] : ['key' => 'open', 'label' => 'Noch keine Rückmeldung', 'by' => ''];
+    if (!empty($cell['offered'])) return $type === 'RV' ? ['key' => 'self', 'label' => 'Zugesagt', 'by' => $name] : ['key' => 'planned', 'label' => 'Geplant', 'by' => $name];
+    return $type === 'RV' ? ['key' => 'none', 'label' => 'Keine Bereitstellung', 'by' => ''] : ['key' => 'not_planned', 'label' => 'Nicht geplant', 'by' => ''];
+}
