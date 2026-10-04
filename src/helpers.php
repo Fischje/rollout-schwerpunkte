@@ -303,6 +303,7 @@ function sync_mandatory_services(PDO $db, ?int $onlyObjectId = null, ?int $onlyP
         $projectSql .= ' WHERE id=?';
         $projectParams[] = $onlyProjectId;
     }
+    sync_always_included_services($db, $onlyProjectId);
     $stmt = $db->prepare($projectSql);
     $stmt->execute($projectParams);
     $projects = array_map('intval', array_column($stmt->fetchAll(), 'id'));
@@ -366,6 +367,33 @@ function sync_mandatory_services(PDO $db, ?int $onlyObjectId = null, ?int $onlyP
     }
 }
 
+/**
+ * „Immer enthalten“: Solche Leistungen werden jedem Rolloutobjekt zugeordnet, dessen
+ * Klasse zur Leistung passt (kumulativ), und lassen sich nicht abwählen.
+ * Zusätzliche Projektleistungen gelten nur innerhalb ihres Projekts.
+ */
+function sync_always_included_services(PDO $db, ?int $onlyProjectId = null): void
+{
+    $services = enrich_support_services($db, $db->query('SELECT * FROM support_services WHERE active=1 AND always_included=1')->fetchAll());
+    if (!$services) return;
+    $sql = 'SELECT * FROM rollout_objects';
+    $params = [];
+    if ($onlyProjectId !== null) { $sql .= ' WHERE project_id=?'; $params[] = $onlyProjectId; }
+    $stmt = $db->prepare($sql);
+    $stmt->execute($params);
+    $objects = enrich_rollout_objects($db, $stmt->fetchAll());
+    $projectInsert = $db->prepare('INSERT OR IGNORE INTO project_services(project_id,support_service_id) VALUES(?,?)');
+    $usageInsert = $db->prepare('INSERT OR IGNORE INTO project_service_rollout_objects(project_id,support_service_id,rollout_object_id) VALUES(?,?,?)');
+    foreach ($objects as $object) {
+        foreach ($services as $service) {
+            if (empty($service['is_standard']) && (int)$service['project_id'] !== (int)$object['project_id']) continue;
+            if (!service_applies_to_rollout_object($service, $object)) continue;
+            $projectInsert->execute([(int)$object['project_id'], (int)$service['id']]);
+            $usageInsert->execute([(int)$object['project_id'], (int)$service['id'], (int)$object['id']]);
+        }
+    }
+}
+
 function mandatory_project_pairs(PDO $db, int $projectId): array
 {
     sync_mandatory_services($db, null, $projectId);
@@ -406,4 +434,15 @@ function changelog_entries(): array {
 /** Die Programmversion ist der oberste Eintrag im CHANGELOG.md. */
 function app_version(?string $fallback = null): string {
     return changelog_entries()[0]['version'] ?? ($fallback ?? '0.0.0');
+}
+
+/** Kennzeichnungen „Immer enthalten“ und „Obligatorisch“ (Flag oder automatisch über die Basisklasse). */
+function service_flag_badges(array $service): string {
+    $badges = '';
+    if (!empty($service['always_included'])) $badges .= '<span class="badge text-bg-primary" title="Automatisch an jedem passenden Rolloutobjekt, nicht abwählbar">Immer enthalten</span> ';
+    if (!empty($service['mandatory_for_all'])) return $badges . '<span class="badge text-bg-danger" title="Die Leistungserbringer werden nicht nach der Bereitstellung gefragt">Obligatorisch</span>';
+    $base = [];
+    foreach (['functional:A' => 'RV', 'technical:1' => 'FI', 'dsv:L1' => 'DSV'] as $code => $label) if (in_array($code, (array)($service['class_codes'] ?? []), true)) $base[] = $label;
+    if ($base) $badges .= '<span class="badge text-bg-danger" title="Basisklasse: automatisch obligatorisch, die Leistungserbringer werden nicht nach der Bereitstellung gefragt">Obligatorisch (Basisklasse ' . e(implode(', ', $base)) . ')</span>';
+    return $badges;
 }

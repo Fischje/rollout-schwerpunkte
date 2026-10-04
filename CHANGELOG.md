@@ -1,5 +1,15 @@
 # Änderungsverlauf
 
+## 0.1.43
+
+- Neues Flag „Immer enthalten“ an Standard- und zusätzlichen Projektleistungen (Katalog-Editor, Leistungseditor, Katalog-Excel mit neuer Spalte; ältere Katalogdateien ohne Spalte bleiben importierbar)
+- Leistungen mit „Immer enthalten“ werden automatisch jedem Rolloutobjekt zugeordnet, dessen Klasse passt (kumulativ), auch neu angelegten oder umgestuften Objekten
+- In der Projektmatrix sind sie angehakt und gesperrt; „Streichen“ und „Datei ist maßgeblich“ im Import entfernen sie nicht
+- „Obligatorisch“ schützt nicht mehr vor dem Streichen: Es regelt nur, dass die Leistungserbringer nicht nach der Bereitstellung gefragt werden (Basisklassen A/1/erste DSV-Klasse automatisch oder per Flag)
+- Katalogliste und Projektmatrix kennzeichnen „Immer enthalten“, „Obligatorisch“ und „Obligatorisch (Basisklasse …)“ einheitlich
+- Korrektur: Der TPL-/PL-Import entfernte bisher die Zuordnungen einer genannten Leistung an allen anderen Rolloutobjekten des Projekts; jetzt bleiben nicht genannte Zuordnungen unverändert und entfernt wird nur per „Streichen“ oder „Datei ist maßgeblich“ (die Zählung entfernter Zuordnungen stimmt wieder)
+- Bestehende Datenbanken erhalten die neue Spalte beim ersten Start automatisch; das Schema bleibt Version 23
+
 ## 0.1.42
 
 - Neue Leistungen werden im Importassistenten über ein eigenes Feld „Neue Leistung festlegen“ angelegt: Haken für den zentralen Standardkatalog, Auswahl der Erbringer (Regionalverbände, FI, DSV) sowie je Erbringer die Ab-Klasse (bankfachlich A–D, FI 1–3, DSV-Schema)
