@@ -144,7 +144,7 @@ final class Xlsx
         $styles = null;
         if ($styledLayout) {
             $widths = $tplLayout ? [32,22,38,14,14,24,30,22,22,38,25,30,45,36] : [30,22,34,14,14,24,30,20,20,36,25,30,40,18,22,18,14,16,25,34,20,34];
-            if ($providerLayout && ($options['provider_type'] ?? '') === 'RV') $widths = array_merge($widths, [40,40,4]);
+            if ($providerLayout && ($options['provider_type'] ?? '') === 'RV') $widths = array_merge($widths, [40,40,4,46]);
             $columns = '';
             foreach ($widths as $index => $width) {
                 $hidden = '';

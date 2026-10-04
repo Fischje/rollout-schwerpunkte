@@ -1,5 +1,15 @@
 # Änderungsverlauf
 
+## 0.1.49
+
+- Neue Seite „Übersicht“ (Hauptmenü): Alle Projekte mit Stand der Zusagen der Regionalverbände, Zahl der offenen Punkte sowie geplanten FI- und DSV-Leistungen
+- Projektansicht mit Kennzahlen und farbiger Matrix der bankfachlichen Leistungen der TPL × zwölf Regionalverbände (selbst, über anderen Regionalverband, externer Dienstleister, verbindlich, offen, keine Bereitstellung); Details wie übernehmender Verband oder Dienstleister per Mauszeiger
+- „Offene Punkte je Rolloutobjekt“: welche Leistungen an welchem Objekt noch ohne Zusage, Übergabe an einen anderen Verband oder externe Lösung sind und bei welchen Verbänden
+- Eigene Abschnitte für die Leistungen der FI und des DSV je Rolloutobjekt (geplant, vorgesehen ohne Planung, nicht vorgesehen, für die Klasse nicht relevant)
+- „Offene Punkte als Excel“ für ein Projekt oder alle Projekte, mit Ansprechpartnern der Regionalverbände
+- RV-Abfragedatei: neue Spalte „Erbracht durch“ zeigt je Leistung, wer sie erbringt (Regionalverbände bankfachlich, FI, DSV) und ob die Angabe des Verbands erforderlich, verbindlich oder nur Information ist; die Legende erklärt die Spalte
+- Gesamtexport: neue Spalten „Art des Leistungserbringers“, „Zuständig laut Katalog“, „Stand der Leistungserbringung“ und „Leistung erbracht durch“ (bei Übergabe der übernehmende Verband bzw. externe Dienstleister)
+
 ## 0.1.48
 
 - Kein Vorschlagswesen mehr im Import: Neue Leistungen werden ausschließlich über „Als neue Leistung anlegen“ festgelegt und beim Bestätigen direkt angelegt, auf Wunsch als Standardleistung im zentralen Katalog; gleichnamige Zeilen ergeben genau eine Leistung
