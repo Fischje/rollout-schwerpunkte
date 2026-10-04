@@ -35,6 +35,7 @@ final class Database
                 );
             }
             self::ensureNoSupportLevels($db);
+            self::ensureAlwaysIncludedColumn($db);
             return;
         }
 
@@ -60,6 +61,15 @@ final class Database
         foreach(['1','2','3'] as $index=>$label)$insertClass->execute(['FI',$label,$label,$index+1]);
         $insertClass->execute(['DSV','0','0 – keine Verbundpartnerleistung erforderlich',0]);
         foreach(['1','2','3'] as $index=>$label)$insertClass->execute(['DSV','L'.($index+1),$label,$index+1]);
+    }
+
+    /** Seit 0.1.43: Flag „Immer enthalten“ an Leistungen; wird bei bestehenden Datenbanken einmalig ergänzt, das Schema bleibt Version 23. */
+    private static function ensureAlwaysIncludedColumn(PDO $db): void
+    {
+        $columns = array_column($db->query('PRAGMA table_info(support_services)')->fetchAll(), 'name');
+        if (!in_array('always_included', $columns, true)) {
+            $db->exec('ALTER TABLE support_services ADD COLUMN always_included INTEGER NOT NULL DEFAULT 0 CHECK(always_included IN (0,1))');
+        }
     }
 
     private static function ensureNoSupportLevels(PDO $db): void

@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.42
+# Rollout-Schwerpunkte 0.1.43
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -23,6 +23,14 @@ Regionalverbände.
   für Rolloutobjekte ohne erforderliche DSV-Unterstützungsleistung reserviert.
 - Eine Leistung kann Regionalverbänden, FI und DSV gleichzeitig zugeordnet
   sein; FI und DSV werden getrennt ausgewählt.
+- „Obligatorisch“ bedeutet: Die Leistungserbringer werden nicht gefragt, ob sie
+  die Leistung bereitstellen, sie ist verbindlich. Das gilt automatisch für die
+  Basisklassen (Bankfachlich A, FI 1, erste DSV-Klasse) und zusätzlich für
+  Leistungen mit dem Flag „obligatorisch“.
+- „Immer enthalten“ ist ein eigenes Flag: Die Leistung wird jedem Rolloutobjekt
+  zugeordnet, dessen Klasse passt (kumulativ), auch neuen Objekten, und kann
+  weder in der Projektmatrix noch per Import abgewählt werden (z. B. ROLF;
+  praktisch darf ein ROLF für das ganze Projekt geschrieben werden).
 - Je Leistung wird festgelegt, ob sie obligatorisch ist und ob ein
   Termin/Zeitraum relevant ist.
 - Je Projekt und Leistungserbringer wird genau ein Ansprechpartner gepflegt.
@@ -75,11 +83,11 @@ neben dem neuen Wert. Jede Zeile kann einzeln übernommen oder nicht übernommen
 und vorher bearbeitet werden. Neue Leistungen lassen sich dort auch als
 Standardleistung in den zentralen Katalog aufnehmen. Beim TPL-/PL-Import kann
 zusätzlich „Datei ist maßgeblich“ gewählt werden: Nicht mehr genannte Leistungen
-werden dann am Rolloutobjekt entfernt, obligatorische Leistungen (Klasse A)
+werden dann am Rolloutobjekt entfernt, Leistungen mit „Immer enthalten“
 bleiben aber erhalten.
 Durchgestrichene Leistungen in TPL-/PL-Excel-Dateien werden als Streichung
-vorbelegt (Aktion „Streichen“ je Zeile); obligatorische Leistungen bleiben auch
-dann erhalten.
+vorbelegt (Aktion „Streichen“ je Zeile); Leistungen mit „Immer enthalten“
+bleiben auch dann erhalten.
 
 Der Gesamtimport ist transaktional. Bei einem Fehler wird die gesamte Datei
 zurückgerollt. Rückmeldungen eines Leistungserbringers verändern keine Angaben
@@ -181,7 +189,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.42**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.43**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.
