@@ -1,5 +1,13 @@
 # Änderungsverlauf
 
+## 0.1.47
+
+- „Für den Standardkatalog vorschlagen“ gibt es jetzt bei allen Importen mit Leistungen: TPL-/PL-Planung, Rückmeldungen der FI, des DSV und der Regionalverbände (bisher nur DSV)
+- Vorschläge landen im Standardkatalog unter „Offene Katalogvorschläge“ mit Zielkatalog (RV, FI oder DSV), Herkunft und Projekt/Rolloutobjekt; bei der Freigabe wird die Ab-Klasse gewählt (vorbelegt mit der Klasse des Rolloutobjekts)
+- Nach der Freigabe ist die Leistung Standardleistung des jeweiligen Katalogs und wird dem Projekt und, falls passend, dem Rolloutobjekt zugeordnet; Angaben des vorschlagenden Leistungserbringers werden übernommen
+- Alternativ bleibt der direkte Weg „Als neue Leistung anlegen“ mit Haken „In den zentralen Standardkatalog aufnehmen“ für alle Quellen erhalten
+- Bestehende Datenbanken werden beim ersten Start automatisch umgestellt; vorhandene DSV-Vorschläge bleiben erhalten
+
 ## 0.1.46
 
 - Rückmeldeimport: „Dem zentralen Katalog vorschlagen“ erscheint nur noch bei DSV-Dateien; bei FI und Regionalverbänden führte die Auswahl bisher zur Fehlermeldung „Zentrale Katalogvorschläge sind … dem DSV vorbehalten“
