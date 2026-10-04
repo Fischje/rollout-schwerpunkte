@@ -1,5 +1,12 @@
 # Änderungsverlauf
 
+## 0.1.46
+
+- Rückmeldeimport: „Dem zentralen Katalog vorschlagen“ erscheint nur noch bei DSV-Dateien; bei FI und Regionalverbänden führte die Auswahl bisher zur Fehlermeldung „Zentrale Katalogvorschläge sind … dem DSV vorbehalten“
+- „Als neue Leistung anlegen“ hat jetzt auch bei Rückmeldungen das Feld „Neue Leistung festlegen“: Aufnahme in den zentralen Standardkatalog per Haken und Ab-Klasse des jeweiligen Leistungserbringers (vorbelegt mit der Klasse des Rolloutobjekts); zuständig ist automatisch der oben gewählte Leistungserbringer
+- Die im Feld gewählte Klasse hat Vorrang vor der Klasse des Rolloutobjekts (auch beim DSV)
+- Jede Zeile im Prüfschritt zeigt ihre Zeilennummer, damit Meldungen wie „Zeile 6: …“ zuzuordnen sind; die Meldung beim Katalogvorschlag nennt jetzt den richtigen Weg
+
 ## 0.1.45
 
 - Rückmeldeimport: Die Auswahl „Zuordnung Leistung“ zeigt nur noch die Leistungen des oben gewählten Leistungserbringers (FI, DSV oder Regionalverbände), sortiert nach dessen Ab-Klasse und mit Klassenangabe (z. B. „FI ab Klasse 2“); bei Wechsel des Leistungserbringers passt sich die Liste sofort an
