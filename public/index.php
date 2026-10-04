@@ -398,8 +398,9 @@ function render_import(PDO $db): void {
         $projects=$db->query('SELECT id,name FROM projects ORDER BY name')->fetchAll();$objects=$db->query('SELECT r.id,r.project_id,r.name,p.name project_name FROM rollout_objects r JOIN projects p ON p.id=r.project_id ORDER BY p.name,r.name')->fetchAll(); ?>
 <div class="project-matrix-page"><div class="mb-4"><h1 class="page-title h2 mb-1">Importwerte zuordnen</h1><p class="text-secondary mb-0">Schritt 2 von 3 · <?=count($wizard['files']??[])?> Datei(en) · <?=count($wizard['rows'])?> gefundene Zeilen</p></div>
 <div class="alert alert-light border"><?=$mode==='feedback'?'Ordnen Sie jede Rückmeldedatei genau einem Leistungserbringer zu. Es werden nur vorhandene Projekte verwendet und ausschließlich dessen Angaben zu den Projektleistungen aktualisiert. Bereits importierte Rückmeldungen anderer Leistungserbringer bleiben erhalten.':($mode==='planning'?'Die Planungsdatei aktualisiert Rolloutdaten und Objektklassen sowie die von TPL/PL je Rolloutobjekt ausgewählten Projektleistungen. Eine Angebots- oder Bereitstellungsabfrage findet in dieser Phase nicht statt.':'Bitte kontrollieren Sie die erkannten Werte. Dieser Strukturimport darf neue Projekte und Rolloutobjekte anlegen.')?> Neue oder unklare Leistungen müssen vor der Übernahme zugeordnet, als zusätzliche Projektleistung angelegt oder ausgelassen werden.</div>
-<?php $dbState=['objects'=>[],'byName'=>[],'usage'=>[],'matrix'=>[],'mandatory'=>[]];$matchKey=static fn(string $v):string=>import_match_key($v);
+<?php $dbState=['objects'=>[],'byName'=>[],'usage'=>[],'matrix'=>[],'mandatory'=>[],'providerTypes'=>[],'classLabels'=>[]];foreach($providers as $providerRow)$dbState['providerTypes'][(int)$providerRow['id']]=(string)$providerRow['type'];foreach(['FI','DSV'] as $levelType)foreach(provider_class_levels($db,$levelType,true) as $level)$dbState['classLabels'][$levelType][(string)$level['class_code']]=(string)$level['class_label'];$matchKey=static fn(string $v):string=>import_match_key($v);
 foreach($db->query('SELECT r.id,r.name,r.start_date,r.end_date,r.functional_class,r.notes,p.name project_name FROM rollout_objects r JOIN projects p ON p.id=r.project_id')->fetchAll() as $o){$dbState['objects'][(int)$o['id']]=['s'=>format_date($o['start_date'],''),'e'=>format_date($o['end_date'],''),'f'=>(string)($o['functional_class']??''),'n'=>(string)$o['notes']];$dbState['byName'][$matchKey((string)$o['project_name']).'|'.$matchKey((string)$o['name'])]=(int)$o['id'];}
+foreach($db->query('SELECT rollout_object_id,provider_type,class_code FROM rollout_object_provider_classes')->fetchAll() as $c)if(isset($dbState['objects'][(int)$c['rollout_object_id']]))$dbState['objects'][(int)$c['rollout_object_id']][$c['provider_type']]=(string)$c['class_code'];
 foreach($db->query('SELECT support_service_id,rollout_object_id FROM project_service_rollout_objects')->fetchAll() as $u)$dbState['usage'][$u['rollout_object_id'].':'.$u['support_service_id']]=1;
 foreach($db->query('SELECT id FROM support_services WHERE always_included=1')->fetchAll() as $svc)$dbState['mandatory'][(int)$svc['id']]=1;
 if($mode==='feedback')foreach($db->query('SELECT project_id,support_service_id,provider_id,offered,delivery_mode,delivery_partner,schedule,note FROM project_support_matrix')->fetchAll() as $m)$dbState['matrix'][$m['project_id'].':'.$m['support_service_id'].':'.$m['provider_id']]=['o'=>$m['offered']?'Ja':'Nein','m'=>delivery_mode_label((string)$m['delivery_mode']),'pa'=>(string)$m['delivery_partner'],'s'=>(string)$m['schedule'],'n'=>(string)$m['note']];
@@ -409,7 +410,7 @@ if(!empty($wizard['replace'])):?><div class="alert alert-warning"><strong>„Dat
 <?php $warnedRows=array_filter((array)$wizard['rows'],fn($r)=>!empty($r['warnings']));if($warnedRows):?><div class="alert alert-danger"><strong>Bitte prüfen: <?=count($warnedRows)?> Zeile(n) enthalten Auffälligkeiten.</strong> Die Hinweise stehen rot in der Spalte „Gefundene Leistung“. Nicht eindeutige Angaben werden nur übernommen, wenn Sie sie ausdrücklich zuordnen.</div><?php endif;?>
 <form method="post" id="import-review-form" data-mode="<?=e($mode)?>"><?=csrf_field()?><input type="hidden" name="action" value="import_compare"><input type="hidden" name="wizard_token" value="<?=e($wizard['token'])?>"><input type="hidden" name="review_payload" id="review-payload">
 <?php if($mode==='feedback'):?><div class="card p-3 mb-3"><h2 class="h6 mb-3">Dateien den Leistungserbringern zuordnen</h2><div class="row g-3"><?php foreach($wizard['files'] as $file):?><div class="col-md-6 col-xl-4"><label class="form-label small text-secondary"><?=e($file['name'])?></label><select class="form-select" data-file-provider="<?=e((string)$file['index'])?>" required><option value="">– Leistungserbringer wählen –</option><?php foreach($providers as $provider):?><option value="<?=$provider['id']?>" <?=$file['provider_id']==$provider['id']?'selected':''?>><?=e($provider['name'])?></option><?php endforeach;?></select></div><?php endforeach;?></div></div><?php endif;?>
-<div class="card matrix-wrap import-review-wrap"><table class="table table-bordered align-middle mb-0 import-review-table hide-details"><thead><tr><th>Aktion</th><th>Bisher → neu</th><?php if($existingTargets):?><th>Quelldatei</th><?php endif;?><th>Projekt (gefunden)</th><?php if($existingTargets):?><th>Vorhandenes Projekt</th><?php endif;?><th>Datensatz</th><th>Rolloutobjekt (gefunden)</th><?php if($existingTargets):?><th>Vorhandenes Rolloutobjekt</th><?php endif;?><th>Beginn</th><th>Ende</th><th>Klasse Bankfachlich</th><th>Klasse FI</th><th>Klasse des Leistungserbringers</th><?php if($mode!=='planning'):?><th>Projektleitung</th><th>TPL Rollout</th><?php endif;?><th>Gefundene Leistung</th><th>Zuordnung Leistung</th><th>Genutzt für Rolloutobjekte</th><?php if($mode==='structure'):?><th>Gefundener Leistungserbringer</th><th>Zuordnung Leistungserbringer</th><?php endif;?><?php if($mode!=='planning'):?><th>Ansprechpartner</th><th>Telefonnummer</th><th>Angeboten</th><th>Bereitstellungsart</th><th>Anderer RV / externer DL</th><th>Termin / Zeitraum</th><?php endif;?><th>Bemerkung</th></tr></thead><tbody>
+<div class="card matrix-wrap import-review-wrap"><table class="table table-bordered align-middle mb-0 import-review-table hide-details"><thead><tr><th>Aktion</th><th>Bisher → neu</th><?php if($existingTargets):?><th>Quelldatei</th><?php endif;?><th>Projekt (gefunden)</th><?php if($existingTargets):?><th>Vorhandenes Projekt</th><?php endif;?><th>Datensatz</th><th>Rolloutobjekt (gefunden)</th><?php if($existingTargets):?><th>Vorhandenes Rolloutobjekt</th><?php endif;?><th>Beginn</th><th>Ende</th><th>Klasse Bankfachlich</th><th>Klasse FI</th><th><?=$mode==='feedback'?'Rolloutklasse FI / DSV':'Klasse des Leistungserbringers'?></th><?php if($mode!=='planning'):?><th>Projektleitung</th><th>TPL Rollout</th><?php endif;?><th>Gefundene Leistung</th><th>Zuordnung Leistung</th><th>Genutzt für Rolloutobjekte</th><?php if($mode==='structure'):?><th>Gefundener Leistungserbringer</th><th>Zuordnung Leistungserbringer</th><?php endif;?><?php if($mode!=='planning'):?><th>Ansprechpartner</th><th>Telefonnummer</th><th>Angeboten</th><th>Bereitstellungsart</th><th>Anderer RV / externer DL</th><th>Termin / Zeitraum</th><?php endif;?><th>Bemerkung</th></tr></thead><tbody>
 <?php foreach($wizard['rows'] as $index=>$row):$options=wizard_service_options($catalog,$row,true);$statusClass=['exact'=>'success','manual'=>'primary','suggestion'=>'info','skipped'=>'secondary','ambiguous'=>'warning','missing'=>'danger','empty'=>'secondary'][$row['service_status']]??'secondary';$statusText=['exact'=>'Eindeutig zugeordnet','manual'=>'Manuell zugeordnet','suggestion'=>'Vorschlag für den zentralen Katalog','skipped'=>'Leistungswert wird ausgelassen','ambiguous'=>'Zuordnung prüfen','missing'=>'Kein eindeutiger Treffer','empty'=>'Keine Leistung gefunden'][$row['service_status']]??'Zuordnung prüfen'; ?>
 <tr data-import-row data-source-index="<?=e((string)($row['source_index']??0))?>" <?=!empty($row['struck'])?'data-struck="1"':''?>>
 <td><select class="form-select form-select-sm fw-semibold" data-field="include" aria-label="Aktion für diese Zeile"><?php $includeValue=($row['include']??true)==='remove'?'remove':(($row['include']??true)?'1':'');?><option value="1" <?=$includeValue==='1'?'selected':''?>>Übernehmen</option><option value="" <?=$includeValue===''?'selected':''?>>Nicht übernehmen</option><?php if($mode==='planning'&&$row['service']!==''):?><option value="remove" <?=$includeValue==='remove'?'selected':''?>>Streichen (am Objekt entfernen)</option><?php endif;?></select><?php if($mode!=='structure'):?><input type="hidden" data-field="provider" value="<?=e($row['provider']??'')?>"><input type="hidden" data-field="provider_id" value="<?=e((string)($row['provider_id']??''))?>"><?php endif;?></td>
@@ -423,11 +424,16 @@ if(!empty($wizard['replace'])):?><div class="alert alert-warning"><strong>„Dat
 <?php if($mode==='planning'&&$row['service']!==''&&$row['scope']==='Rolloutobjekt'):?><td class="small text-secondary"><span data-inherit="start"></span><input type="hidden" data-field="start" value=""></td>
 <td class="small text-secondary"><span data-inherit="end"></span><input type="hidden" data-field="end" value=""></td>
 <td class="small text-secondary"><span data-inherit="class"></span><input type="hidden" data-field="functional" value="<?=e((string)$row['functional'])?>"></td>
+<?php elseif($mode==='feedback'):?><td class="small text-secondary"><span data-dbdate="start"></span><input type="hidden" data-field="start" value="<?=e($row['start'])?>"></td>
+<td class="small text-secondary"><span data-dbdate="end"></span><input type="hidden" data-field="end" value="<?=e($row['end'])?>"></td>
+<td><select class="form-select form-select-sm" data-field="functional"><option value="">–</option><?php foreach(['A','B','C','D'] as $class):?><option value="<?=$class?>" <?=$row['functional']===$class?'selected':''?>><?=$class?></option><?php endforeach;?></select></td>
 <?php else:?><td><input class="form-control form-control-sm" data-field="start" value="<?=e($row['start'])?>" placeholder="TT.MM.JJJJ"></td>
 <td><input class="form-control form-control-sm" data-field="end" value="<?=e($row['end'])?>" placeholder="TT.MM.JJJJ"></td>
 <td><select class="form-select form-select-sm" data-field="functional"><option value="">–</option><?php foreach(['A','B','C','D'] as $class):?><option value="<?=$class?>" <?=$row['functional']===$class?'selected':''?>><?=$class?></option><?php endforeach;?></select></td><?php endif;?>
 <td><select class="form-select form-select-sm" data-field="technical"><option value="">–</option><?php foreach(['0','1','2','3'] as $class):?><option value="<?=$class?>" <?=$row['technical']===$class?'selected':''?>><?=$class?></option><?php endforeach;?></select></td>
-<td><input class="form-control form-control-sm" data-field="provider_class" value="<?=e($row['provider_class']??'')?>"></td>
+<?php if($mode==='feedback'&&$row['service']===''):$currentClass=(string)($row['provider_class']??'');?><td><span class="small text-secondary" data-pclass-none hidden>–</span><select class="form-select form-select-sm" data-field="provider_class" data-pclass-select data-initial="<?=e($currentClass)?>"><option value="">– nicht festgelegt –</option><?php foreach(['FI','DSV'] as $levelType):?><optgroup label="<?=$levelType?>" data-type="<?=$levelType?>"><?php foreach(provider_class_levels($db,$levelType,true) as $level):?><option value="<?=e((string)$level['class_code'])?>"><?=e((string)$level['class_label'])?></option><?php endforeach;?></optgroup><?php endforeach;?></select></td>
+<?php elseif($mode==='feedback'):?><td class="small text-secondary"><span data-inherit-pclass></span><input type="hidden" data-field="provider_class" value="<?=e((string)($row['provider_class']??''))?>"></td>
+<?php else:?><td><input class="form-control form-control-sm" data-field="provider_class" value="<?=e($row['provider_class']??'')?>"></td><?php endif;?>
 <?php if($mode!=='planning'):?><td><input class="form-control form-control-sm" data-field="project_lead" value="<?=e($row['project_lead'])?>"></td>
 <td><input class="form-control form-control-sm" data-field="rollout_lead" value="<?=e($row['rollout_lead'])?>"></td><?php endif;?>
 <td><input class="form-control form-control-sm" data-field="service" value="<?=e($row['service'])?>"><span class="badge text-bg-<?=$statusClass?> mt-1"><?=$statusText?></span><?php if(!empty($row['struck'])):?> <span class="badge text-bg-danger mt-1">In Excel durchgestrichen</span><?php endif;?><?php foreach((array)($row['warnings']??[]) as $rowWarning):?><div class="small text-danger mt-1" style="min-width:16rem">⚠ <?=e($rowWarning)?></div><?php endforeach;?></td>
@@ -481,7 +487,15 @@ const compare=row=>{
  if(!objectId&&mode==='structure')objectId=state.byName[key(val(row,'project'))+'|'+key(val(row,'object'))]||'';
  const old=objectId?state.objects[objectId]:null;
  if(scope==='Rolloutobjekt'&&val(row,'object')!==''&&!old)flag('<div class="text-success fw-semibold">Rolloutobjekt wird neu angelegt</div>',true);
- if(service===''){
+ const providerType=()=>{const fs=form.querySelector('[data-file-provider="'+row.dataset.sourceIndex+'"]');return state.providerTypes[val(row,'provider_id')||(fs?fs.value:'')]||''};
+ if(mode==='feedback'&&service===''){
+  if(old){
+   const type=providerType();
+   if(type==='FI'||type==='DSV'){const was=old[type]||'',now=val(row,'provider_class');const lbl=c=>c===''?'':((state.classLabels[type]||{})[c]||c);flag(field('Rolloutklasse '+type,lbl(was),lbl(now)),now!==''&&was!==now)}
+   const fs=val(row,'start'),fe=val(row,'end');
+   if((fs&&fs!==old.s)||(fe&&fe!==old.e))out.push('<div class="text-secondary">Zeitraum laut Datei '+esc(fs||'–')+' – '+esc(fe||'–')+' weicht ab ('+esc(old.s||'–')+' – '+esc(old.e||'–')+'). Er wird hier nicht übernommen; Zeiträume ändert nur der TPL-/PL-Import.</div>');
+  }
+ }else if(service===''){
   if(old){
    const start=val(row,'start'),end=val(row,'end'),cls=val(row,'functional'),note=val(row,'note');
    if(start!==''||end!==''||cls!==''||note!==''){
@@ -498,7 +512,7 @@ const compare=row=>{
  else if(mode==='feedback'){
   const fileSelect=form.querySelector('[data-file-provider="'+row.dataset.sourceIndex+'"]');const provider=val(row,'provider_id')||(fileSelect?fileSelect.value:'');const project=val(row,'project_id');
   const m=state.matrix[project+':'+choice+':'+provider];
-  const nv={o:row.querySelector('[data-field="offered"]')?.checked?'Ja':'Nein',m:optText(row,'delivery_mode').replace('– nicht angegeben –',''),pa:val(row,'delivery_partner'),s:val(row,'schedule'),n:val(row,'note')};
+  const nv={o:(['FI','DSV'].includes(state.providerTypes[provider])||row.querySelector('[data-field="offered"]')?.checked)?'Ja':'Nein',m:optText(row,'delivery_mode').replace('– nicht angegeben –',''),pa:val(row,'delivery_partner'),s:val(row,'schedule'),n:val(row,'note')};
   out.push('<div class="fw-semibold">'+esc(optText(row,'service_id'))+'</div>');
   if(!m)flag('<div class="text-success">Neue Rückmeldung: Geplant '+nv.o+(nv.m?' · '+esc(nv.m):'')+(nv.s?' · '+esc(nv.s):'')+'</div>',true);
   else{flag(field('Geplant',m.o,nv.o),m.o!==nv.o);if(nv.m!==''||m.m!=='')flag(field('Bereitstellung',m.m,nv.m),m.m!==nv.m);if(nv.pa!==''||m.pa!=='')flag(field('Partner',m.pa,nv.pa),m.pa!==nv.pa);if(nv.s!==''||m.s!=='')flag(field('Termin',m.s,nv.s),m.s!==nv.s);if(nv.n!==''||m.n!=='')flag(field('Bemerkung',m.n,nv.n),m.n!==nv.n)}
@@ -521,6 +535,24 @@ const syncPanel=row=>{
  panel.querySelector('[data-field="provider_targets"]').value=targets.join(',');
  panel.querySelector('[data-new-rv]').hidden=!targets.includes('RV');panel.querySelector('[data-new-fi]').hidden=!targets.includes('FI');panel.querySelector('[data-new-dsv]').hidden=!targets.includes('DSV');
 };
+form.querySelectorAll('[data-pclass-select]').forEach(sel=>sel.addEventListener('change',()=>{sel.dataset.touched='1'}));
+const updateFeedback=()=>{
+ if(mode!=='feedback')return;
+ const typeOf=row=>{const fs=form.querySelector('[data-file-provider="'+row.dataset.sourceIndex+'"]');return state.providerTypes[val(row,'provider_id')||(fs?fs.value:'')]||''};
+ const masters={};let anyRv=false;
+ rows.forEach(row=>{
+  const type=typeOf(row);if(type==='RV')anyRv=true;
+  const id=val(row,'object_id');const old=id?state.objects[id]:null;
+  row.querySelectorAll('[data-dbdate]').forEach(el=>el.textContent=old?(old[el.dataset.dbdate==='start'?'s':'e']||'–'):'–');
+  const sel=row.querySelector('[data-pclass-select]');
+  if(sel){sel.querySelectorAll('optgroup').forEach(g=>{g.hidden=g.dataset.type!==type;g.disabled=g.dataset.type!==type});
+   if(sel.dataset.appliedType!==type&&!sel.dataset.touched){const init=(sel.dataset.initial||'').trim();const match=[...sel.querySelectorAll('optgroup[data-type="'+type+'"] option')].find(o=>init!==''&&(o.value===init||o.textContent.trim()===init||o.textContent.trim().startsWith(init+' ')));sel.value=match?match.value:'';sel.dataset.appliedType=type;}sel.hidden=!(type==='FI'||type==='DSV');row.querySelector('[data-pclass-none]').hidden=!sel.hidden;masters[row.dataset.sourceIndex+'|'+key(val(row,'object'))]={value:sel.value,label:sel.value===''?'–':sel.selectedOptions[0].textContent};return}
+  const span=row.querySelector('[data-inherit-pclass]');if(!span)return;
+  const m=masters[row.dataset.sourceIndex+'|'+key(val(row,'object'))];
+  if(m){row.querySelector('[data-field="provider_class"]').value=m.value;span.textContent=(type==='FI'||type==='DSV')?m.label:'–'}else span.textContent='–';
+ });
+ [...table.querySelectorAll('thead th')].forEach((th,i)=>{if(['Angeboten','Bereitstellungsart','Anderer RV / externer DL'].includes(th.textContent.trim()))table.querySelectorAll('tr').forEach(tr=>tr.children[i]?.classList.toggle('auto-hidden',!anyRv))});
+};
 const updateInherit=()=>{
  const masters={};
  rows.forEach(row=>{
@@ -535,14 +567,15 @@ const updateInherit=()=>{
 };
 const summary=()=>{const rows=[...form.querySelectorAll('[data-import-row]')];const on=rows.filter(r=>val(r,'include')!=='');document.getElementById('import-row-summary').textContent=on.length+' von '+rows.length+' Zeilen werden übernommen · '+on.filter(r=>r.dataset.changed==='1').length+' mit Änderung'};
 const rows=[...form.querySelectorAll('[data-import-row]')];
-rows.forEach(row=>{syncPanel(row);refreshRow(row);row.addEventListener('input',()=>{syncPanel(row);refreshRow(row);updateInherit();summary()});row.addEventListener('change',()=>{syncPanel(row);refreshRow(row);updateInherit();summary()})});updateInherit();
-form.querySelectorAll('[data-file-provider]').forEach(s=>s.addEventListener('change',()=>{rows.forEach(refreshRow);summary()}));
+const table=form.querySelector('.import-review-table');
+rows.forEach(row=>{syncPanel(row);refreshRow(row);row.addEventListener('input',()=>{syncPanel(row);updateFeedback();refreshRow(row);updateInherit();summary()});row.addEventListener('change',()=>{syncPanel(row);updateFeedback();refreshRow(row);updateInherit();summary()})});updateFeedback();rows.forEach(refreshRow);updateInherit();
+form.querySelectorAll('[data-file-provider]').forEach(s=>s.addEventListener('change',()=>{updateFeedback();rows.forEach(refreshRow);summary()}));
 document.querySelectorAll('[data-bulk]').forEach(btn=>btn.addEventListener('click',()=>{
  rows.forEach(row=>{const inc=row.querySelector('[data-field="include"]');const warned=!!row.querySelector('.text-danger');
   const kind=btn.dataset.bulk;if(kind==='all-on')inc.value=row.dataset.struck==='1'&&inc.querySelector('option[value="remove"]')?'remove':'1';else if(kind==='all-off')inc.value='';else if(kind==='unchanged-off'&&row.dataset.changed!=='1')inc.value='';else if(kind==='warned-off'&&warned)inc.value='';
   refreshRow(row)});summary()}));
 summary();
-const table=form.querySelector('.import-review-table');const detailNames=['Quelldatei','Projekt (gefunden)','Datensatz','Rolloutobjekt (gefunden)','Klasse FI','Klasse des Leistungserbringers','Projektleitung','TPL Rollout','Genutzt für Rolloutobjekte','Gefundener Leistungserbringer','Zuordnung Leistungserbringer','Vorhandenes Projekt','Bemerkung'];
+const detailNames=['Quelldatei','Projekt (gefunden)','Datensatz','Rolloutobjekt (gefunden)','Klasse FI','Klasse des Leistungserbringers','Projektleitung','TPL Rollout','Genutzt für Rolloutobjekte','Gefundener Leistungserbringer','Zuordnung Leistungserbringer','Vorhandenes Projekt','Bemerkung'];if(mode==='feedback')detailNames.push('Klasse Bankfachlich');
 [...table.querySelectorAll('thead th')].forEach((th,i)=>{if(detailNames.includes(th.textContent.trim()))table.querySelectorAll('tr').forEach(tr=>tr.children[i]?.classList.add('detail-col'))});
 const colWidths={'Aktion':165,'Vorhandenes Projekt':150,'Vorhandenes Rolloutobjekt':210,'Beginn':118,'Ende':118,'Klasse Bankfachlich':75,'Klasse FI':80,'Gefundene Leistung':150,'Zuordnung Leistung':170,'Zuständig bei neuer Leistung':130,'Bemerkung':170,'Termin / Zeitraum':120};
 [...table.querySelectorAll('thead th')].forEach(th=>{th.style.minWidth=(colWidths[th.textContent.trim()]||110)+'px'});
