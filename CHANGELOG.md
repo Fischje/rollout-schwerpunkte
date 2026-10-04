@@ -1,5 +1,12 @@
 # Änderungsverlauf
 
+## 0.1.48
+
+- Kein Vorschlagswesen mehr im Import: Neue Leistungen werden ausschließlich über „Als neue Leistung anlegen“ festgelegt und beim Bestätigen direkt angelegt, auf Wunsch als Standardleistung im zentralen Katalog; gleichnamige Zeilen ergeben genau eine Leistung
+- In DSV-Dateien als Katalogleistung markierte Einträge sind im Prüfschritt mit „Als neue Leistung anlegen“ und Haken für den Standardkatalog vorbelegt
+- Offene Katalogvorschläge aus früheren Importen sind im Standardkatalog nach Name und Zielkatalog zusammengefasst; eine Freigabe legt die Leistung einmal an oder verwendet die bereits vorhandene gleichnamige Standardleistung und ordnet sie allen Fundstellen zu; „Ablehnen“ gilt ebenfalls für die ganze Gruppe
+- Die Meldung „Eine Leistung mit diesem Namen existiert bereits“ bei der Freigabe entfällt dadurch
+
 ## 0.1.47
 
 - „Für den Standardkatalog vorschlagen“ gibt es jetzt bei allen Importen mit Leistungen: TPL-/PL-Planung, Rückmeldungen der FI, des DSV und der Regionalverbände (bisher nur DSV)
