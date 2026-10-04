@@ -1,5 +1,13 @@
 # Änderungsverlauf
 
+## 0.1.41
+
+- Excel-Import erkennt durchgestrichene Zellen (Zellformat und Textabschnitte); in TPL-/PL-Dateien gelten durchgestrichene Leistungen als von der TPL gestrichen
+- Solche Zeilen sind im Prüfschritt mit „In Excel durchgestrichen“ gekennzeichnet und mit der neuen Aktion „Streichen (am Objekt entfernen)“ vorbelegt; die Aktion lässt sich je Zeile auf „Übernehmen“ oder „Nicht übernehmen“ ändern
+- „Bisher → neu“ zeigt vorab, ob die Leistung am Objekt tatsächlich entfernt wird, nicht eingetragen ist (nichts zu tun) oder als obligatorische Leistung (Klasse A) erhalten bleibt
+- Die Aktion „Streichen“ wirkt je Zeile und unabhängig vom Schalter „Datei ist maßgeblich“; nutzt danach kein Rolloutobjekt des Projekts die Leistung mehr, entfällt auch die Projektleistung; alles erscheint vorab als „Wird entfernt“
+- „Alle übernehmen“ belässt durchgestrichene Zeilen auf „Streichen“; außerhalb des TPL-/PL-Imports sind sie standardmäßig abgewählt
+
 ## 0.1.40
 
 - Import-Prüftabelle ist nicht mehr unbegrenzt breit: Spaltenköpfe und Vergleichsspalte brechen um, Eingabefelder passen sich der Spaltenbreite an
