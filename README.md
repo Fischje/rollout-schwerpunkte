@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.47
+# Rollout-Schwerpunkte 0.1.48
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -56,14 +56,12 @@ Regionalverbände.
    Rolloutobjekts passenden Katalogleistungen. Klasse 0 steht in beiden
    Klassen-Dropdowns zur Verfügung und liefert konsequent eine leere
    Leistungsauswahl. Freie Ergänzungen (FI, DSV, Regionalverbände und TPL/PL)
-   lassen sich beim Import entweder direkt als Standardleistung anlegen oder
-   für den Standardkatalog vorschlagen. Die Auswahl
+   werden beim Import über „Als neue Leistung anlegen“ direkt angelegt, auf
+   Wunsch als Standardleistung im zentralen Katalog. Die Auswahl
    oder freie Erfassung einer Leistung gilt unmittelbar als Planung; deshalb
    enthalten diese Dateien keine zusätzliche Spalte `Angeboten`. Die Zuordnung
    zu FI beziehungsweise DSV erfolgt über die Datei und ist nicht als sichtbare
-   Spalte erforderlich. Vorschläge erscheinen unter „Offene
-   Katalogvorschläge“ im Standardkatalog und werden erst nach Freigabe (mit
-   Wahl der Ab-Klasse) verbindlich.
+   Spalte erforderlich.
 3. Die Regionalverbände erhalten danach getrennte Dateien. Die zuvor
    importierten FI-/DSV-Angaben werden je Projektleistung zur Information
    angezeigt.
@@ -191,7 +189,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.47**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.48**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.
