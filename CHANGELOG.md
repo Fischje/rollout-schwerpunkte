@@ -1,5 +1,13 @@
 # Änderungsverlauf
 
+## 0.1.45
+
+- Rückmeldeimport: Die Auswahl „Zuordnung Leistung“ zeigt nur noch die Leistungen des oben gewählten Leistungserbringers (FI, DSV oder Regionalverbände), sortiert nach dessen Ab-Klasse und mit Klassenangabe (z. B. „FI ab Klasse 2“); bei Wechsel des Leistungserbringers passt sich die Liste sofort an
+- Eine bereits gewählte, aber nicht passende Leistung bleibt sichtbar und ist mit „nicht für … vorgesehen“ gekennzeichnet
+- Die Auswahl des Leistungserbringers oben hat jetzt Vorrang vor der automatisch erkannten Zuordnung
+- Neue Leistungen, die in mehreren Zeilen unter demselben Namen angelegt werden, entstehen nur einmal; Folgezeilen übernehmen die Festlegung der ersten Zeile automatisch (Katalogaufnahme, Zuständigkeit, Klassen) und zeigen einen Hinweis statt eines eigenen Eingabefelds
+- Abweichende Festlegungen für denselben Namen werden vor dem Import mit Zeilenangabe abgelehnt; Schreibvarianten (Groß-/Kleinschreibung, Leerzeichen) führen nicht mehr zu doppelten Leistungen
+
 ## 0.1.44
 
 - Rückmeldungen von FI und DSV: Der Prüfschritt zeigt statt „Klasse Bankfachlich“ die Spalte „Rolloutklasse FI / DSV“ mit einer Auswahl aus dem Klassenschema des zugeordneten Leistungserbringers (FI 1–3, DSV-Schema, jeweils inklusive Klasse 0)

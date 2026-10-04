@@ -393,7 +393,7 @@ function render_import(PDO $db): void {
     $wizard=$_SESSION['import_wizard']??null;
     if($wizard&&($wizard['stage']??'')==='confirm'){render_import_confirmation($wizard);return;}
     if($wizard){
-        $catalog=import_service_catalog($db);$mode=in_array(($wizard['mode']??''),['feedback','planning','structure'],true)?$wizard['mode']:'structure';$existingTargets=$mode!=='structure';
+        $catalog=import_service_catalog($db);$catalogMeta=[];foreach(enrich_support_services($db,$catalog) as $metaService)$catalogMeta[(int)$metaService['id']]=$metaService;$mode=in_array(($wizard['mode']??''),['feedback','planning','structure'],true)?$wizard['mode']:'structure';$existingTargets=$mode!=='structure';
         $providers=$db->query("SELECT id,name,type FROM providers WHERE active=1 ORDER BY CASE type WHEN 'FI' THEN 1 WHEN 'DSV' THEN 2 ELSE 3 END,sort_order,name")->fetchAll();
         $projects=$db->query('SELECT id,name FROM projects ORDER BY name')->fetchAll();$objects=$db->query('SELECT r.id,r.project_id,r.name,p.name project_name FROM rollout_objects r JOIN projects p ON p.id=r.project_id ORDER BY p.name,r.name')->fetchAll(); ?>
 <div class="project-matrix-page"><div class="mb-4"><h1 class="page-title h2 mb-1">Importwerte zuordnen</h1><p class="text-secondary mb-0">Schritt 2 von 3 · <?=count($wizard['files']??[])?> Datei(en) · <?=count($wizard['rows'])?> gefundene Zeilen</p></div>
@@ -437,14 +437,14 @@ if(!empty($wizard['replace'])):?><div class="alert alert-warning"><strong>„Dat
 <?php if($mode!=='planning'):?><td><input class="form-control form-control-sm" data-field="project_lead" value="<?=e($row['project_lead'])?>"></td>
 <td><input class="form-control form-control-sm" data-field="rollout_lead" value="<?=e($row['rollout_lead'])?>"></td><?php endif;?>
 <td><input class="form-control form-control-sm" data-field="service" value="<?=e($row['service'])?>"><span class="badge text-bg-<?=$statusClass?> mt-1"><?=$statusText?></span><?php if(!empty($row['struck'])):?> <span class="badge text-bg-danger mt-1">In Excel durchgestrichen</span><?php endif;?><?php foreach((array)($row['warnings']??[]) as $rowWarning):?><div class="small text-danger mt-1" style="min-width:16rem">⚠ <?=e($rowWarning)?></div><?php endforeach;?></td>
-<td><select class="form-select form-select-sm service-match-select" data-field="service_id"><option value=""><?=$row['service']===''?'– keine Leistung vorhanden –':'– bitte Zuordnung wählen –'?></option><?php if($row['service']!==''):?><option value="skip_service" <?=$row['service_id']==='skip_service'?'selected':''?>>Gefundenen Leistungswert nicht übernehmen</option><option value="new_custom" <?=$row['service_id']==='new_custom'?'selected':''?>>+ Als neue Leistung anlegen (Standardkatalog oder nur dieses Projekt)</option><?php endif;?><?php if($mode==='feedback'&&$row['scope']==='Rolloutobjekt'&&$row['service']!==''):?><option value="new_catalog_suggestion" <?=$row['service_id']==='new_catalog_suggestion'?'selected':''?>>+ Dem zentralen Katalog vorschlagen</option><?php endif;?><?php render_import_service_options($options,(int)$row['service_id']);?></select><input type="hidden" data-field="catalog_suggestion" value="<?=!empty($row['catalog_suggestion'])?'1':''?>"><?php if($mode==='planning'&&$row['service']!==''):$panelTargets=array_filter(explode(',',(string)($row['provider_targets']??'')))?:['RV'];?><div class="border rounded p-2 mt-2 small bg-white" data-new-panel hidden>
+<td><select class="form-select form-select-sm service-match-select" data-field="service_id"><option value=""><?=$row['service']===''?'– keine Leistung vorhanden –':'– bitte Zuordnung wählen –'?></option><?php if($row['service']!==''):?><option value="skip_service" <?=$row['service_id']==='skip_service'?'selected':''?>>Gefundenen Leistungswert nicht übernehmen</option><option value="new_custom" <?=$row['service_id']==='new_custom'?'selected':''?>>+ Als neue Leistung anlegen (Standardkatalog oder nur dieses Projekt)</option><?php endif;?><?php if($mode==='feedback'&&$row['scope']==='Rolloutobjekt'&&$row['service']!==''):?><option value="new_catalog_suggestion" <?=$row['service_id']==='new_catalog_suggestion'?'selected':''?>>+ Dem zentralen Katalog vorschlagen</option><?php endif;?><?php render_import_service_options($options,(int)$row['service_id'],$catalogMeta);?></select><input type="hidden" data-field="catalog_suggestion" value="<?=!empty($row['catalog_suggestion'])?'1':''?>"><?php if($mode==='planning'&&$row['service']!==''):$panelTargets=array_filter(explode(',',(string)($row['provider_targets']??'')))?:['RV'];?><div class="border rounded p-2 mt-2 small bg-white" data-new-panel hidden>
 <div class="fw-semibold mb-1">Neue Leistung festlegen</div>
 <label class="form-check mb-2"><input class="form-check-input" type="checkbox" data-field="create_standard" value="1" <?=!empty($row['create_standard'])?'checked':''?>><span>In den zentralen Standardkatalog aufnehmen</span><span class="d-block text-secondary">Ohne Haken bleibt sie eine nicht standardisierte Leistung nur dieses Projekts.</span></label>
 <div class="mb-2"><span class="d-block text-secondary">Wer erbringt die Leistung?</span><?php foreach(['RV'=>'Regionalverbände','FI'=>'FI','DSV'=>'DSV'] as $targetCode=>$targetLabel):?><label class="form-check form-check-inline me-2"><input class="form-check-input" type="checkbox" data-target="<?=$targetCode?>" <?=in_array($targetCode,$panelTargets,true)?'checked':''?>><span><?=e($targetLabel)?></span></label><?php endforeach;?><input type="hidden" data-field="provider_targets" value="<?=e(implode(',',$panelTargets))?>"></div>
 <div class="mb-2" data-new-rv><span class="d-block text-secondary">Ab Rolloutklasse Bankfachlich (gilt kumulativ; A ist obligatorisch)</span><select class="form-select form-select-sm" data-field="new_class"><?php foreach(['A','B','C','D'] as $class):?><option value="<?=$class?>" <?=(($row['new_class']??$row['functional'])===$class)?'selected':''?>><?=$class?></option><?php endforeach;?></select></div>
 <div class="mb-2" data-new-fi hidden><span class="d-block text-secondary">Ab FI-Klasse</span><select class="form-select form-select-sm" data-field="new_fi_class"><?php foreach(['1','2','3'] as $class):?><option value="<?=$class?>" <?=(($row['new_fi_class']??'1')===$class)?'selected':''?>><?=$class?></option><?php endforeach;?></select></div>
 <div class="mb-0" data-new-dsv hidden><span class="d-block text-secondary">Ab DSV-Klasse</span><select class="form-select form-select-sm" data-field="new_dsv_class"><?php foreach(provider_class_levels($db,'DSV') as $level):?><option value="<?=e((string)$level['class_code'])?>" <?=(($row['new_dsv_class']??'')===(string)$level['class_code'])?'selected':''?>><?=e((string)$level['class_label'])?></option><?php endforeach;?></select></div>
-</div><?php endif;?></td>
+</div><div class="small text-secondary mt-2" data-new-follower hidden></div><?php endif;?></td>
 <td><textarea class="form-control form-control-sm" rows="2" data-field="used_objects" placeholder="Eine Bezeichnung je Zeile"><?=e($row['used_objects']??'')?></textarea></td>
 
 <?php if($mode==='structure'):?>
@@ -487,7 +487,7 @@ const compare=row=>{
  if(!objectId&&mode==='structure')objectId=state.byName[key(val(row,'project'))+'|'+key(val(row,'object'))]||'';
  const old=objectId?state.objects[objectId]:null;
  if(scope==='Rolloutobjekt'&&val(row,'object')!==''&&!old)flag('<div class="text-success fw-semibold">Rolloutobjekt wird neu angelegt</div>',true);
- const providerType=()=>{const fs=form.querySelector('[data-file-provider="'+row.dataset.sourceIndex+'"]');return state.providerTypes[val(row,'provider_id')||(fs?fs.value:'')]||''};
+ const providerType=()=>{const fs=form.querySelector('[data-file-provider="'+row.dataset.sourceIndex+'"]');return state.providerTypes[(fs&&fs.value)||val(row,'provider_id')]||''};
  if(mode==='feedback'&&service===''){
   if(old){
    const type=providerType();
@@ -507,10 +507,11 @@ const compare=row=>{
   }
  }else if(choice===''){flag('<div class="text-danger fw-semibold">Zuordnung der Leistung fehlt</div>',false)}
  else if(choice==='skip_service'){out.push('<div class="text-secondary">Leistung „'+esc(service)+'“ wird ignoriert</div>')}
+ else if(choice==='new_custom'&&row.dataset.newLeader){flag('<div class="text-success">Neue Leistung „'+esc(service)+'“ wird nur einmal angelegt (wie bei „'+esc(row.dataset.newLeader)+'“) und hier zugeordnet</div>',true)}
  else if(choice==='new_custom'){const t=val(row,'provider_targets');const parts=[];if(t.includes('RV'))parts.push('RV ab Klasse '+val(row,'new_class'));if(t.includes('FI'))parts.push('FI ab Klasse '+val(row,'new_fi_class'));if(t.includes('DSV'))parts.push('DSV ab '+optText(row,'new_dsv_class'));flag('<div class="text-success fw-semibold">Neue '+(val(row,'create_standard')?'Standardleistung (zentraler Katalog)':'Projektleistung')+': „'+esc(service)+'“</div><div class="text-secondary">'+(parts.length?esc(parts.join(' · ')):'<span class="text-danger">Zuständigkeit wählen</span>')+'</div>',true)}
  else if(choice==='new_catalog_suggestion'){flag('<div class="text-success fw-semibold">Katalogvorschlag: „'+esc(service)+'“</div>',true)}
  else if(mode==='feedback'){
-  const fileSelect=form.querySelector('[data-file-provider="'+row.dataset.sourceIndex+'"]');const provider=val(row,'provider_id')||(fileSelect?fileSelect.value:'');const project=val(row,'project_id');
+  const fileSelect=form.querySelector('[data-file-provider="'+row.dataset.sourceIndex+'"]');const provider=(fileSelect&&fileSelect.value)||val(row,'provider_id');const project=val(row,'project_id');
   const m=state.matrix[project+':'+choice+':'+provider];
   const nv={o:(['FI','DSV'].includes(state.providerTypes[provider])||row.querySelector('[data-field="offered"]')?.checked)?'Ja':'Nein',m:optText(row,'delivery_mode').replace('– nicht angegeben –',''),pa:val(row,'delivery_partner'),s:val(row,'schedule'),n:val(row,'note')};
   out.push('<div class="fw-semibold">'+esc(optText(row,'service_id'))+'</div>');
@@ -536,9 +537,36 @@ const syncPanel=row=>{
  panel.querySelector('[data-new-rv]').hidden=!targets.includes('RV');panel.querySelector('[data-new-fi]').hidden=!targets.includes('FI');panel.querySelector('[data-new-dsv]').hidden=!targets.includes('DSV');
 };
 form.querySelectorAll('[data-pclass-select]').forEach(sel=>sel.addEventListener('change',()=>{sel.dataset.touched='1'}));
+const rowProviderType=row=>{if(mode!=='feedback')return '';const fs=form.querySelector('[data-file-provider="'+row.dataset.sourceIndex+'"]');return state.providerTypes[(fs&&fs.value)||val(row,'provider_id')]||''};
+const filterServiceOptions=()=>{
+ rows.forEach(row=>{
+  const sel=row.querySelector('[data-field="service_id"]');if(!sel)return;const type=rowProviderType(row);
+  sel.querySelectorAll('option[data-targets]').forEach(o=>{
+   const fits=!type||o.dataset.targets.split(',').includes(type);o.hidden=!fits&&!o.selected;
+   const cls=type?o.dataset['class'+type.charAt(0)+type.slice(1).toLowerCase()]:'';
+   o.textContent=o.dataset.name+' · '+o.dataset.context+(type&&cls?' · '+type+' ab Klasse '+cls:'')+(!fits&&o.selected?' · nicht für '+type+' vorgesehen':'');
+  });
+  if(type&&row.dataset.optType!==type){sel.querySelectorAll('optgroup').forEach(g=>{const field='class'+type.charAt(0)+type.slice(1).toLowerCase();[...g.querySelectorAll('option')].sort((a,b)=>(a.dataset[field]||'~').localeCompare(b.dataset[field]||'~','de',{numeric:true})||a.dataset.name.localeCompare(b.dataset.name,'de')).forEach(o=>g.appendChild(o))});row.dataset.optType=type}
+ });
+};
+const syncNewGroups=()=>{
+ const leaders={};
+ rows.forEach(row=>{
+  const panel=row.querySelector('[data-new-panel]');const note=row.querySelector('[data-new-follower]');
+  delete row.dataset.newLeader;if(note)note.hidden=true;
+  if(!panel||val(row,'service_id')!=='new_custom'||val(row,'include')==='')return;
+  const k=key(val(row,'service'));if(!leaders[k]){leaders[k]=row;return}
+  const lead=leaders[k];
+  panel.querySelectorAll('[data-target]').forEach(c=>{c.checked=!!lead.querySelector('[data-target="'+c.dataset.target+'"]')?.checked});
+  ['create_standard'].forEach(n=>{const a=lead.querySelector('[data-field="'+n+'"]'),b=row.querySelector('[data-field="'+n+'"]');if(a&&b)b.checked=a.checked});
+  ['new_class','new_fi_class','new_dsv_class'].forEach(n=>{const a=lead.querySelector('[data-field="'+n+'"]'),b=row.querySelector('[data-field="'+n+'"]');if(a&&b)b.value=a.value});
+  syncPanel(row);panel.hidden=true;row.dataset.newLeader=val(lead,'object')||'oben';
+  if(note){note.hidden=false;note.textContent='Wird nur einmal angelegt – Festlegung wie bei „'+row.dataset.newLeader+'“ (erste Zeile mit diesem Namen).'}
+ });
+};
 const updateFeedback=()=>{
  if(mode!=='feedback')return;
- const typeOf=row=>{const fs=form.querySelector('[data-file-provider="'+row.dataset.sourceIndex+'"]');return state.providerTypes[val(row,'provider_id')||(fs?fs.value:'')]||''};
+ const typeOf=row=>{const fs=form.querySelector('[data-file-provider="'+row.dataset.sourceIndex+'"]');return state.providerTypes[(fs&&fs.value)||val(row,'provider_id')]||''};
  const masters={};let anyRv=false;
  rows.forEach(row=>{
   const type=typeOf(row);if(type==='RV')anyRv=true;
@@ -568,12 +596,13 @@ const updateInherit=()=>{
 const summary=()=>{const rows=[...form.querySelectorAll('[data-import-row]')];const on=rows.filter(r=>val(r,'include')!=='');document.getElementById('import-row-summary').textContent=on.length+' von '+rows.length+' Zeilen werden übernommen · '+on.filter(r=>r.dataset.changed==='1').length+' mit Änderung'};
 const rows=[...form.querySelectorAll('[data-import-row]')];
 const table=form.querySelector('.import-review-table');
-rows.forEach(row=>{syncPanel(row);refreshRow(row);row.addEventListener('input',()=>{syncPanel(row);updateFeedback();refreshRow(row);updateInherit();summary()});row.addEventListener('change',()=>{syncPanel(row);updateFeedback();refreshRow(row);updateInherit();summary()})});updateFeedback();rows.forEach(refreshRow);updateInherit();
-form.querySelectorAll('[data-file-provider]').forEach(s=>s.addEventListener('change',()=>{updateFeedback();rows.forEach(refreshRow);summary()}));
+const refreshAll=()=>{rows.forEach(syncPanel);syncNewGroups();updateFeedback();filterServiceOptions();rows.forEach(refreshRow);updateInherit();summary()};
+rows.forEach(row=>{row.addEventListener('input',refreshAll);row.addEventListener('change',refreshAll)});refreshAll();
+form.querySelectorAll('[data-file-provider]').forEach(s=>s.addEventListener('change',refreshAll));
 document.querySelectorAll('[data-bulk]').forEach(btn=>btn.addEventListener('click',()=>{
  rows.forEach(row=>{const inc=row.querySelector('[data-field="include"]');const warned=!!row.querySelector('.text-danger');
   const kind=btn.dataset.bulk;if(kind==='all-on')inc.value=row.dataset.struck==='1'&&inc.querySelector('option[value="remove"]')?'remove':'1';else if(kind==='all-off')inc.value='';else if(kind==='unchanged-off'&&row.dataset.changed!=='1')inc.value='';else if(kind==='warned-off'&&warned)inc.value='';
-  refreshRow(row)});summary()}));
+  });refreshAll()}));
 summary();
 const detailNames=['Quelldatei','Projekt (gefunden)','Datensatz','Rolloutobjekt (gefunden)','Klasse FI','Klasse des Leistungserbringers','Projektleitung','TPL Rollout','Genutzt für Rolloutobjekte','Gefundener Leistungserbringer','Zuordnung Leistungserbringer','Vorhandenes Projekt','Bemerkung'];if(mode==='feedback')detailNames.push('Klasse Bankfachlich');
 [...table.querySelectorAll('thead th')].forEach((th,i)=>{if(detailNames.includes(th.textContent.trim()))table.querySelectorAll('tr').forEach(tr=>tr.children[i]?.classList.add('detail-col'))});
@@ -929,13 +958,18 @@ function prepare_import_wizard(PDO $db,array $rows,array $strikes=[]): array {
     if(!$result)throw new RuntimeException('Die Datei enthält keine auswertbaren Datenzeilen.');return $result;
 }
 
-function render_import_service_options(array $services,int $selectedId): void {
-    $groups=['1'=>['label'=>'Standardleistungen','items'=>[]],'0'=>['label'=>'Zusätzliche Projektleistungen','items'=>[]]];foreach($services as $service)$groups[(string)(int)$service['is_standard']]['items'][]=$service;foreach($groups as $group)if($group['items']){echo '<optgroup label="'.e($group['label']).'">';foreach($group['items'] as $service){$context=$service['is_standard']?'zentraler Standard':'Projekt '.$service['project_name'];echo '<option value="'.(int)$service['id'].'" '.((int)$service['id']===$selectedId?'selected':'').'>'.e($service['name'].' · '.$context).'</option>';}echo '</optgroup>';}
+function render_import_service_options(array $services,int $selectedId,array $meta=[]): void {
+    $groups=['1'=>['label'=>'Standardleistungen','items'=>[]],'0'=>['label'=>'Zusätzliche Projektleistungen','items'=>[]]];foreach($services as $service)$groups[(string)(int)$service['is_standard']]['items'][]=$service;
+    foreach($groups as $group)if($group['items']){echo '<optgroup label="'.e($group['label']).'">';foreach($group['items'] as $service){
+        $context=$service['is_standard']?'zentraler Standard':'Projekt '.$service['project_name'];$info=$meta[(int)$service['id']]??[];$classes=['RV'=>'','FI'=>'','DSV'=>''];
+        foreach((array)($info['class_codes']??[]) as $entry){[$dimension,$code]=array_pad(explode(':',(string)$entry,2),2,'');$type=['functional'=>'RV','technical'=>'FI','dsv'=>'DSV'][$dimension]??'';if($type!==''&&$classes[$type]==='')$classes[$type]=$type==='DSV'?(string)(($info['dsv_class_labels']??[])[$code]??$code):$code;}
+        echo '<option value="'.(int)$service['id'].'" '.((int)$service['id']===$selectedId?'selected':'').' data-name="'.e((string)$service['name']).'" data-context="'.e($context).'" data-targets="'.e(implode(',',(array)($info['provider_targets']??[]))).'" data-class-rv="'.e($classes['RV']).'" data-class-fi="'.e($classes['FI']).'" data-class-dsv="'.e($classes['DSV']).'">'.e($service['name'].' · '.$context).'</option>';}
+        echo '</optgroup>';}
 }
 
 function reviewed_import_rows(PDO $db,array $postedRows,string $mode='structure'): array {
     $headers=array_merge(template_headers(),['Zuständige Leistungserbringer neue Leistung','Neue nicht-standardisierte Leistung','Rolloutklasse Leistungserbringer','Katalogvorschlag','Als Standardleistung anlegen','Leistung streichen']);
-    $rows=[$headers];$catalog=import_service_catalog($db);$catalogById=[];foreach($catalog as $service)$catalogById[(int)$service['id']]=$service;$providers=[];$rvIdsByName=[];foreach($db->query('SELECT id,name,type FROM providers WHERE active=1')->fetchAll() as $provider){$providers[(int)$provider['id']]=$provider;if($provider['type']==='RV')$rvIdsByName[(string)$provider['name']]=(int)$provider['id'];}
+    $rows=[$headers];$newDefinitions=[];$catalog=import_service_catalog($db);$catalogById=[];foreach($catalog as $service)$catalogById[(int)$service['id']]=$service;$providers=[];$rvIdsByName=[];foreach($db->query('SELECT id,name,type FROM providers WHERE active=1')->fetchAll() as $provider){$providers[(int)$provider['id']]=$provider;if($provider['type']==='RV')$rvIdsByName[(string)$provider['name']]=(int)$provider['id'];}
     $projects=[];foreach($db->query('SELECT id,name FROM projects')->fetchAll() as $project)$projects[(int)$project['id']]=$project;$objects=[];foreach($db->query('SELECT id,project_id,name FROM rollout_objects')->fetchAll() as $object)$objects[(int)$object['id']]=$object;
     foreach($postedRows as $index=>$posted){
         $includeMode=(string)($posted['include']??'');if($includeMode==='')continue;$isRemove=$includeMode==='remove'&&$mode!=='feedback';$line=(int)$index+1;
@@ -966,6 +1000,7 @@ function reviewed_import_rows(PDO $db,array $postedRows,string $mode='structure'
         $deliveryMode=normalize_delivery_mode((string)($posted['delivery_mode']??''));$deliveryPartner=trim((string)($posted['delivery_partner']??''));$isRv=$providerId&&($providers[$providerId]['type']??'')==='RV';if(!$isRv||!$requiresDelivery){$deliveryMode='';$deliveryPartner='';}elseif(in_array($deliveryMode,['other_rv','external'],true)&&$deliveryPartner==='')throw new RuntimeException('Zeile '.$line.': Bitte den anderen Regionalverband beziehungsweise den externen Dienstleister angeben.');elseif($deliveryMode==='other_rv'&&(!isset($rvIdsByName[$deliveryPartner])||$rvIdsByName[$deliveryPartner]===$providerId))throw new RuntimeException('Zeile '.$line.': Bitte einen anderen aktiven Regionalverband aus der Liste angeben.');elseif(!in_array($deliveryMode,['other_rv','external'],true))$deliveryPartner='';
         $offered=!empty($posted['offered']);if($providerId&&$serviceName!==''&&in_array((string)($providers[$providerId]['type']??''),['FI','DSV'],true))$offered=true;if($isRv&&$requiresDelivery&&$deliveryMode!=='')$offered=in_array($deliveryMode,['self','other_rv','external'],true);
         $newTargets=[];if($createCustom==='Ja'){if($mode==='feedback'&&$providerId)$newTargets=[(string)$providers[$providerId]['type']];else{$newTargets=array_values(array_intersect(array_map('trim',explode(',',(string)($posted['provider_targets']??''))),['RV','FI','DSV']));if(!$newTargets)throw new RuntimeException('Zeile '.$line.': Bitte festlegen, ob die neue Leistung für Regionalverbände, FI und/oder DSV bestimmt ist.');}if(in_array('RV',$newTargets,true)&&!in_array($functional,['A','B','C','D'],true))throw new RuntimeException('Zeile '.$line.': Für Regionalverbände benötigt die neue Leistung eine Leistungsklasse Bankfachlich.');if(in_array('FI',$newTargets,true)&&!in_array($technical,['1','2','3'],true)&&!in_array((string)($posted['provider_class']??''),['1','2','3'],true))throw new RuntimeException('Zeile '.$line.': Für die FI benötigt die neue Leistung eine FI-Klasse.');if(in_array('DSV',$newTargets,true)&&trim((string)($posted['provider_class']??''))==='')throw new RuntimeException('Zeile '.$line.': Für den DSV benötigt die neue Leistung eine Klasse aus dem DSV-Schema.');}
+        if($createCustom==='Ja'){$newKey=import_match_key($serviceName);$definition=[$createStandard,in_array('RV',$newTargets,true)?$functional:'',in_array('FI',$newTargets,true)?($technical?:(string)($posted['provider_class']??'')):'',in_array('DSV',$newTargets,true)?trim((string)($posted['provider_class']??'')):'',implode(',',$newTargets)];if(isset($newDefinitions[$newKey])){$serviceName=$newDefinitions[$newKey]['name'];if($newDefinitions[$newKey]['definition']!==$definition)throw new RuntimeException('Zeile '.$line.': Die neue Leistung „'.$serviceName.'“ wird bereits in Zeile '.$newDefinitions[$newKey]['line'].' angelegt, dort aber mit anderer Katalogaufnahme, Zuständigkeit oder Klasse. Sie wird nur einmal angelegt, bitte in beiden Zeilen gleich festlegen.');}else $newDefinitions[$newKey]=['name'=>$serviceName,'definition'=>$definition,'line'=>$line];}
         if($catalogSuggestion==='Ja'&&($providers[$providerId]['type']??'')!=='DSV')throw new RuntimeException('Zeile '.$line.': Zentrale Katalogvorschläge sind in dieser Phase dem DSV vorbehalten.');
         $functional=in_array(($posted['functional']??''),['A','B','C','D'],true)?(string)$posted['functional']:'';$technical=in_array((string)($posted['technical']??''),['0','1','2','3'],true)?(string)$posted['technical']:'';$rows[]=[ $row['project'],$serviceName!==''&&$row['scope']!=='Rolloutobjekt'?'Projektleistung':$row['scope'],$row['object'],trim((string)($posted['start']??'')),trim((string)($posted['end']??'')),$serviceName===''?$functional:'',$serviceName===''?$technical:'',trim((string)($posted['project_lead']??'')),trim((string)($posted['rollout_lead']??'')),$serviceName,$serviceName!==''?$functional:'',$serviceName!==''?$technical:'',trim((string)($posted['used_objects']??'')),$providerId?$providers[$providerId]['name']:'',trim((string)($posted['contact_name']??'')),trim((string)($posted['contact_phone']??'')),$offered?'Ja':'Nein','',delivery_mode_label($deliveryMode),$deliveryPartner,trim((string)($posted['schedule']??'')),trim((string)($posted['note']??'')),implode(',',$newTargets),$createCustom,trim((string)($posted['provider_class']??'')),$catalogSuggestion,$createStandard,''];
     }
