@@ -151,10 +151,11 @@ CREATE TABLE IF NOT EXISTS rollout_object_support_matrix (
 
 CREATE TABLE IF NOT EXISTS catalog_service_suggestions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    provider_type TEXT NOT NULL CHECK(provider_type IN ('FI','DSV')),
-    provider_id INTEGER NOT NULL,
+    provider_type TEXT NOT NULL CHECK(provider_type IN ('RV','FI','DSV')),
+    source TEXT NOT NULL DEFAULT 'DSV' CHECK(source IN ('TPL','RV','FI','DSV')),
+    provider_id INTEGER,
     project_id INTEGER NOT NULL,
-    rollout_object_id INTEGER NOT NULL,
+    rollout_object_id INTEGER,
     proposed_name TEXT NOT NULL,
     class_code TEXT NOT NULL,
     offered INTEGER NOT NULL DEFAULT 0,
@@ -165,6 +166,7 @@ CREATE TABLE IF NOT EXISTS catalog_service_suggestions (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(provider_id) REFERENCES providers(id) ON DELETE CASCADE,
+    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
     FOREIGN KEY(project_id, rollout_object_id) REFERENCES rollout_objects(project_id, id) ON DELETE CASCADE,
     FOREIGN KEY(accepted_service_id) REFERENCES support_services(id) ON DELETE SET NULL
 );

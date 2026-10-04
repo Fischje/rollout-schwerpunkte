@@ -36,6 +36,7 @@ final class Database
             }
             self::ensureNoSupportLevels($db);
             self::ensureAlwaysIncludedColumn($db);
+            self::ensureOpenSuggestionTable($db);
             return;
         }
 
@@ -69,6 +70,52 @@ final class Database
         $columns = array_column($db->query('PRAGMA table_info(support_services)')->fetchAll(), 'name');
         if (!in_array('always_included', $columns, true)) {
             $db->exec('ALTER TABLE support_services ADD COLUMN always_included INTEGER NOT NULL DEFAULT 0 CHECK(always_included IN (0,1))');
+        }
+    }
+
+    /**
+     * Seit 0.1.47: Katalogvorschläge kommen von TPL/PL, Regionalverbänden, FI und DSV.
+     * Bestehende Tabellen (nur FI/DSV, Rolloutobjekt Pflicht) werden einmalig umgebaut; vorhandene Vorschläge bleiben erhalten.
+     */
+    private static function ensureOpenSuggestionTable(PDO $db): void
+    {
+        $sql = (string)$db->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='catalog_service_suggestions'")->fetchColumn();
+        if ($sql === '' || str_contains($sql, 'source TEXT')) return;
+        $db->exec('PRAGMA foreign_keys = OFF');
+        $db->beginTransaction();
+        try {
+            $db->exec("CREATE TABLE catalog_service_suggestions_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                provider_type TEXT NOT NULL CHECK(provider_type IN ('RV','FI','DSV')),
+                source TEXT NOT NULL DEFAULT 'DSV' CHECK(source IN ('TPL','RV','FI','DSV')),
+                provider_id INTEGER,
+                project_id INTEGER NOT NULL,
+                rollout_object_id INTEGER,
+                proposed_name TEXT NOT NULL,
+                class_code TEXT NOT NULL,
+                offered INTEGER NOT NULL DEFAULT 0,
+                schedule TEXT NOT NULL DEFAULT '',
+                note TEXT NOT NULL DEFAULT '',
+                status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','rejected')),
+                accepted_service_id INTEGER,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(provider_id) REFERENCES providers(id) ON DELETE CASCADE,
+                FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+                FOREIGN KEY(project_id, rollout_object_id) REFERENCES rollout_objects(project_id, id) ON DELETE CASCADE,
+                FOREIGN KEY(accepted_service_id) REFERENCES support_services(id) ON DELETE SET NULL
+            )");
+            $db->exec("INSERT INTO catalog_service_suggestions_new(id,provider_type,source,provider_id,project_id,rollout_object_id,proposed_name,class_code,offered,schedule,note,status,accepted_service_id,created_at,updated_at)
+                SELECT id,provider_type,provider_type,provider_id,project_id,rollout_object_id,proposed_name,class_code,offered,schedule,note,status,accepted_service_id,created_at,updated_at FROM catalog_service_suggestions");
+            $db->exec('DROP TABLE catalog_service_suggestions');
+            $db->exec('ALTER TABLE catalog_service_suggestions_new RENAME TO catalog_service_suggestions');
+            $db->exec('CREATE INDEX IF NOT EXISTS idx_catalog_suggestion_status ON catalog_service_suggestions(status,provider_type,created_at)');
+            $db->commit();
+        } catch (Throwable $error) {
+            $db->rollBack();
+            throw $error;
+        } finally {
+            $db->exec('PRAGMA foreign_keys = ON');
         }
     }
 
