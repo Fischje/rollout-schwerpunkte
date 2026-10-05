@@ -1,5 +1,15 @@
 # Änderungsverlauf
 
+## 0.1.52
+
+- Projektmatrix und Übersicht werden oben schrittweise eingegrenzt: 1. Projekt, 2. Rolloutobjekt (oder alle), 3. Bereich (Bankfachlich, FI, DSV; in der Übersicht zusätzlich „Alle Bereiche“) – dadurch steht deutlich weniger auf einer Seite
+- Darstellung in vier Blöcken: Projekt (zentral), Regionalverbände (regional), FI und DSV; innerhalb der Blöcke nach Klasse und Name sortiert
+- Die Projektmatrix speichert nur den angezeigten Ausschnitt (Bereich und ggf. Rolloutobjekt); andere Bereiche und Objekte bleiben unverändert. Beim Wechsel der Auswahl mit ungespeicherten Änderungen fragt die Seite nach
+- Die Übersicht hat einen eigenen Block „Projekt (zentral)“ mit den zentral erbrachten bankfachlichen Leistungen; Kennzahlen und offene Punkte beziehen sich auf die Auswahl
+- Gesamtexport und RV-Abfragedatei: neue Spalte „Block“, Sortierung nach Block, Klasse und Name; zentral erbrachte bankfachliche Leistungen erscheinen im Gesamtexport einmal mit „Projekt“ als Erbringer statt zwölfmal je Regionalverband
+- Der Link „Matrix“ in der Projektansicht öffnet die Matrix direkt für das jeweilige Rolloutobjekt
+- Korrektur: FI-Leistungsauswahl in der Projektmatrix brach bei numerischen Klassen mit einem Fehler ab
+
 ## 0.1.51
 
 - Drei getrennte Kataloge: Jede Leistung gehört genau einem Anbieter (Bankfachlich, FI oder DSV). Gleiche Namen sind in verschiedenen Katalogen erlaubt (z. B. „Kickoff“ bankfachlich und bei der FI), innerhalb eines Katalogs nicht

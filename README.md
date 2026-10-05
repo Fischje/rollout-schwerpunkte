@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.51
+# Rollout-Schwerpunkte 0.1.52
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -166,13 +166,18 @@ Wartungsskript abgewiesen.
 
 ## Übersicht Leistungserbringung
 
-Die Seite „Übersicht“ zeigt je Projekt, welche bankfachlichen Leistungen die
-TPL vorsieht und welcher Regionalverband sie selbst, über einen anderen Verband
-oder einen externen Dienstleister bereitstellt. Offene Punkte (keine Angabe
-oder keine Bereitstellung) erscheinen zusätzlich je Rolloutobjekt und lassen
-sich als Excel exportieren. Eigene Abschnitte zeigen die geplanten Leistungen
-von FI und DSV je Rolloutobjekt. RV-Abfragedateien und Gesamtexport weisen je
-Leistung aus, wer sie erbringt.
+Die Seite „Übersicht“ wird oben in drei Schritten eingegrenzt: Projekt,
+Rolloutobjekt (oder alle) und Bereich (alle, Bankfachlich, FI oder DSV). Die
+Darstellung ist in vier Blöcke gegliedert: **Projekt (zentral)** – bankfachliche
+Leistungen, die zentral durch das Projekt erbracht werden; **Regionalverbände
+(regional)** – welcher Regionalverband selbst, über einen anderen Verband oder
+einen externen Dienstleister bereitstellt; **FI** und **DSV** – die geplanten
+Leistungen je Rolloutobjekt. Offene Punkte (keine Angabe oder keine
+Bereitstellung) erscheinen zusätzlich je Rolloutobjekt und lassen sich als Excel
+exportieren. RV-Abfragedateien und Gesamtexport enthalten die Spalte „Block“
+und sind nach Block, Klasse und Name sortiert; zentral erbrachte bankfachliche
+Leistungen stehen im Gesamtexport einmal mit „Projekt“ als Erbringer statt je
+Regionalverband.
 
 ## Importspalten
 
@@ -192,7 +197,12 @@ Dateien verwenden ausschließlich die heutigen Begriffe.
 
 ## Darstellung und Sortierung
 
-Die Projektmatrix nutzt die vollständige verfügbare Browserbreite.
+Die Projektmatrix nutzt die vollständige verfügbare Browserbreite. Wie die
+Übersicht wird sie oben über Projekt, Rolloutobjekt und Bereich (Bankfachlich,
+FI oder DSV) eingegrenzt; im Bereich Bankfachlich ist sie in die Blöcke
+„Projekt (zentral)“ und „Regionalverbände (regional)“ geteilt. Gespeichert wird
+nur der angezeigte Ausschnitt – andere Bereiche und Rolloutobjekte bleiben
+unverändert; beim Wechsel mit ungespeicherten Änderungen fragt die Seite nach.
 Leistungsauswahlen sind zuerst nach Bankfachlichem Rollout, FI und DSV, danach
 nach Klasse und innerhalb der Klasse alphabetisch sortiert. Fachliche Klassen
 werden in abgestuften Rottönen, FI- und DSV-Klassen in abgestuften Blautönen
@@ -206,7 +216,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.51**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.52**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.
