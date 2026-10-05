@@ -1,5 +1,10 @@
 # Änderungsverlauf
 
+## 0.1.56
+
+- PowerPoint-Export: Die Unterzeile der FI-/DSV-Folie nennt nur noch die Zahl der Leistungen je Bereich im Projekt (ohne die aufaddierten Planungen)
+- Schlussfolie der Vorlage: Satz korrigiert zu „Die Unterlage ist eine interne Arbeitsunterlage zur Verwendung zwischen Regionalverbänden, den Verbunddienstleistern und dem DSGV – daher vertraulich zu behandeln.“
+
 ## 0.1.55
 
 - Neu: Übersicht eines Projekts als PowerPoint („Als PowerPoint“ auf der Übersichtsseite, sobald ein Projekt gewählt ist). Grundlage ist die Vorlage „Synchronisation Rollout“ (`resources/powerpoint/`) mit Master, Schriften, Titel- und Schlussfolie

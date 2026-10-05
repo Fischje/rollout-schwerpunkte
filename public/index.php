@@ -947,7 +947,7 @@ function download_project_pptx(PDO $db,int $projectId): never {
     foreach($pages as $i=>$rows){$rows=array_map(static function(array $row):array{$cont=!empty($row['_cont']);unset($row['_block_head'],$row['_cont']);if($cont)$row[0]['text'].=' (Fortsetzung)';return $row;},$rows);$deck->addSlide($topline,$pageTitle('Bankfachliche Leistungen',$i,count($pages)),'Zentral: '.$plural(count($central),'Leistung','Leistungen').' · Regional: '.$plural(count($regional),'Leistung','Leistungen').' · '.$plural($openPoints,'offene Angabe','offene Angaben'),$source,$bankLegend.$deck->table($X,$tableY,$cols,array_merge([$bankHead],$rows),$rowH,8));}
 
     // Folie 3: FI und DSV je Rolloutobjekt
-    $objectGroups=array_chunk($data['objects'],8)?:[[]];$fiPlanned=0;foreach($data['fi_services'] as $e)$fiPlanned+=count(array_filter($e['objects'],fn($s)=>$s==='planned'));$dsvPlanned=0;foreach($data['dsv_services'] as $e)$dsvPlanned+=count(array_filter($e['objects'],fn($s)=>$s==='planned'));
+    $objectGroups=array_chunk($data['objects'],8)?:[[]];
     $slides=[];
     foreach($objectGroups as $objects){
         $nameW=2600000;$classW=480000;$objW=$objects?min(1300000,intdiv($W-$nameW-$classW,count($objects))):0;$nameW=$W-$classW-$objW*count($objects);$cols=array_merge([$nameW,$classW],array_fill(0,count($objects),$objW));
@@ -963,7 +963,7 @@ function download_project_pptx(PDO $db,int $projectId): never {
         foreach(pptx_paginate($rows,$capacity,$capacity) as $pageRows)$slides[]=[$cols,$head,$pageRows];
     }
     $fiLegend=$legend($Y+20000,['planned','fi_open','fi_none','na']);
-    foreach($slides as $i=>[$cols,$head,$rows]){$rows=array_map(static function(array $row):array{$cont=!empty($row['_cont']);unset($row['_block_head'],$row['_cont']);if($cont)$row[0]['text'].=' (Fortsetzung)';return $row;},$rows);$deck->addSlide($topline,$pageTitle('Leistungen von FI und DSV',$i,count($slides)),'FI: '.$plural(count($data['fi_services']),'Leistung','Leistungen').', '.$fiPlanned.'× geplant · DSV: '.$plural(count($data['dsv_services']),'Leistung','Leistungen').', '.$dsvPlanned.'× geplant',$source,$fiLegend.$deck->table($X,$tableY,$cols,array_merge([$head],$rows),$rowH,8));}
+    foreach($slides as $i=>[$cols,$head,$rows]){$rows=array_map(static function(array $row):array{$cont=!empty($row['_cont']);unset($row['_block_head'],$row['_cont']);if($cont)$row[0]['text'].=' (Fortsetzung)';return $row;},$rows);$deck->addSlide($topline,$pageTitle('Leistungen von FI und DSV',$i,count($slides)),'FI: '.$plural(count($data['fi_services']),'Leistung','Leistungen').' · DSV: '.$plural(count($data['dsv_services']),'Leistung','Leistungen'),$source,$fiLegend.$deck->table($X,$tableY,$cols,array_merge([$head],$rows),$rowH,8));}
 
     $footer='Synchronisation Rollout | '.$name.' | '.$date;
     Pptx::download($deck->build($name.', '.$date,$footer),'Synchronisation-Rollout-'.safe_template_filename($name).'-'.$date.'.pptx');
