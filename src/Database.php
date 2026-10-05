@@ -38,6 +38,7 @@ final class Database
             self::ensureAlwaysIncludedColumn($db);
             self::ensureOpenSuggestionTable($db);
             self::ensureDeliveryLevels($db);
+            self::ensureServiceNamesPerCatalog($db);
             return;
         }
 
@@ -137,6 +138,38 @@ final class Database
         $usageColumns = array_column($db->query('PRAGMA table_info(project_service_rollout_objects)')->fetchAll(), 'name');
         if (!in_array('delivery_level', $usageColumns, true)) {
             $db->exec("ALTER TABLE project_service_rollout_objects ADD COLUMN delivery_level TEXT CHECK(delivery_level IN ('regional','central') OR delivery_level IS NULL)");
+        }
+    }
+
+    /**
+     * Seit 0.1.51: Derselbe Leistungsname darf in den getrennten Katalogen (Bankfachlich, FI, DSV) je einmal vorkommen.
+     * Die bisherige Eindeutigkeit des Namens wird einmalig entfernt; die Anwendung prüft Namen je Katalog.
+     */
+    private static function ensureServiceNamesPerCatalog(PDO $db): void
+    {
+        $sql = (string)$db->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='support_services'")->fetchColumn();
+        if ($sql === '' || !preg_match('/\bname\s+TEXT\s+NOT\s+NULL\s+UNIQUE\b/i', $sql)) return;
+        $newSql = preg_replace('/\bname\s+TEXT\s+NOT\s+NULL\s+UNIQUE\b/i', 'name TEXT NOT NULL', $sql, 1);
+        $newSql = preg_replace('/^CREATE TABLE\s+(IF NOT EXISTS\s+)?"?support_services"?/i', 'CREATE TABLE support_services_rebuild', (string)$newSql, 1);
+        $indexes = $db->query("SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='support_services' AND sql IS NOT NULL")->fetchAll(PDO::FETCH_COLUMN);
+        $triggers = $db->query("SELECT name, sql FROM sqlite_master WHERE type='trigger' AND sql IS NOT NULL")->fetchAll();
+        $db->exec('PRAGMA foreign_keys = OFF');
+        $db->beginTransaction();
+        try {
+            foreach ($triggers as $trigger) $db->exec('DROP TRIGGER IF EXISTS "' . str_replace('"', '""', (string)$trigger['name']) . '"');
+            $db->exec((string)$newSql);
+            $db->exec('INSERT INTO support_services_rebuild SELECT * FROM support_services');
+            $db->exec('DROP TABLE support_services');
+            $db->exec('ALTER TABLE support_services_rebuild RENAME TO support_services');
+            foreach ($indexes as $indexSql) $db->exec((string)$indexSql);
+            foreach ($triggers as $trigger) $db->exec((string)$trigger['sql']);
+            if ($db->query('PRAGMA foreign_key_check')->fetchAll()) throw new RuntimeException('Die Umstellung der Leistungsnamen hat eine Fremdschlüsselprüfung nicht bestanden.');
+            $db->commit();
+        } catch (Throwable $error) {
+            $db->rollBack();
+            throw $error;
+        } finally {
+            $db->exec('PRAGMA foreign_keys = ON');
         }
     }
 

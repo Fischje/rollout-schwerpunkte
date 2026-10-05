@@ -1,5 +1,13 @@
 # Änderungsverlauf
 
+## 0.1.51
+
+- Drei getrennte Kataloge: Jede Leistung gehört genau einem Anbieter (Bankfachlich, FI oder DSV). Gleiche Namen sind in verschiedenen Katalogen erlaubt (z. B. „Kickoff“ bankfachlich und bei der FI), innerhalb eines Katalogs nicht
+- Katalog-Editor, Leistungseditor und Importassistent wählen den Katalog per Auswahlknopf (genau einer); angezeigt werden nur die Klassen des gewählten Katalogs
+- Neue Seite „Mehrfach zugeordnete Leistungen aufräumen“ (Hinweis im Katalog): je Leistung aufteilen (je Anbieter ein eigener Eintrag mit dessen Klasse, Rückmeldungen und Nutzung wandern mit) oder nur einen Anbieter behalten; Vorschau der Änderungen vor dem Speichern
+- Importe ordnen Leistungen über die neue Spalte „Leistung-ID“ bzw. den Namen im passenden Katalog zu; FI- und DSV-Rückmeldungen finden die Leistung im Katalog des erkannten Anbieters
+- Korrektur: Die Bereinigung ungültiger Objektzuordnungen berücksichtigte die FI- und DSV-Klassen der Rolloutobjekte nicht (PHP-Warnung, FI-Zuordnungen gingen verloren)
+
 ## 0.1.50
 
 - FI-Klassenschema ist wie beim DSV unter „Leistungserbringer“ einstellbar (zwei bis acht Stufen mit eigenen Bezeichnungen, Klasse 0 fest); Auswahllisten, Excel-Dateien und Prüfungen verwenden das gepflegte Schema

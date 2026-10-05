@@ -253,7 +253,7 @@ function service_applies_to_rollout_object(array $service, array $object): bool 
 }
 
 function prune_invalid_service_rollout_usage(PDO $db, ?int $projectId = null, ?int $serviceId = null): void {
-    $sql = 'SELECT u.project_id,u.support_service_id,u.rollout_object_id,r.functional_class,r.technical_class
+    $sql = 'SELECT r.id,u.project_id,u.support_service_id,u.rollout_object_id,r.functional_class,r.technical_class
             FROM project_service_rollout_objects u
             JOIN rollout_objects r ON r.id=u.rollout_object_id WHERE 1=1';
     $params = [];
@@ -521,4 +521,47 @@ function service_provision_status(array $service, array $provider, ?array $cell,
     if ($cell === null) return $type === 'RV' ? ['key' => 'open', 'label' => 'Offen – noch keine Angabe', 'by' => ''] : ['key' => 'open', 'label' => 'Noch keine Rückmeldung', 'by' => ''];
     if (!empty($cell['offered'])) return $type === 'RV' ? ['key' => 'self', 'label' => 'Zugesagt', 'by' => $name] : ['key' => 'planned', 'label' => 'Geplant', 'by' => $name];
     return $type === 'RV' ? ['key' => 'none', 'label' => 'Keine Bereitstellung', 'by' => ''] : ['key' => 'not_planned', 'label' => 'Nicht geplant', 'by' => ''];
+}
+
+/** Katalog einer Leistung: RV (bankfachlich), FI oder DSV; null, wenn noch mehreren Anbietern zugeordnet (Aufräumen nötig). */
+function service_catalog_type(array $service): ?string {
+    $targets = array_values(array_intersect(['RV', 'FI', 'DSV'], (array)($service['provider_targets'] ?? [])));
+    return count($targets) === 1 ? $targets[0] : null;
+}
+
+function catalog_type_label(string $type): string {
+    return ['RV' => 'Bankfachlich', 'FI' => 'FI', 'DSV' => 'DSV'][$type] ?? $type;
+}
+
+/** Klassen-Dimension eines Katalogs. */
+function catalog_dimension(string $type): string {
+    return ['RV' => 'functional', 'FI' => 'technical', 'DSV' => 'dsv'][$type] ?? '';
+}
+
+/**
+ * Ist der Name im angegebenen Katalog bereits vergeben? Standardleistungen sind katalogweit eindeutig,
+ * zusätzliche Projektleistungen innerhalb ihres Projekts. Groß-/Kleinschreibung und Leerzeichen zählen nicht.
+ */
+function service_name_taken(PDO $db, string $name, string $catalogType, int $excludeId = 0, ?int $projectId = null): ?array {
+    $key = mb_strtolower((string)preg_replace('/[^a-zA-Z0-9äöüÄÖÜß]/u', '', $name));
+    $stmt = $db->prepare('SELECT s.* FROM support_services s JOIN support_service_provider_targets t ON t.support_service_id=s.id AND t.provider_type=? WHERE s.id<>?');
+    $stmt->execute([$catalogType, $excludeId]);
+    foreach ($stmt->fetchAll() as $row) {
+        if (mb_strtolower((string)preg_replace('/[^a-zA-Z0-9äöüÄÖÜß]/u', '', (string)$row['name'])) !== $key) continue;
+        if (!empty($row['is_standard']) || $projectId === null || (int)$row['project_id'] === $projectId) return $row;
+    }
+    return null;
+}
+
+/** Findet eine Leistung über den Namen, bevorzugt im angegebenen Katalog; nur eindeutige Treffer zählen. */
+function find_service_by_name(PDO $db, string $name, ?string $catalogType = null, ?int $projectId = null): ?array {
+    $stmt = $db->prepare('SELECT * FROM support_services WHERE name=?');
+    $stmt->execute([$name]);
+    $rows = array_values(array_filter($stmt->fetchAll(), static fn(array $row): bool => !empty($row['is_standard']) || $projectId === null || (int)$row['project_id'] === $projectId));
+    if (count($rows) <= 1) return $rows[0] ?? null;
+    if ($catalogType === null) return null;
+    $matches = array_values(array_filter(enrich_support_services($db, $rows), static fn(array $row): bool => in_array($catalogType, (array)$row['provider_targets'], true)));
+    if (count($matches) === 1) return $matches[0];
+    $exact = array_values(array_filter($matches, static fn(array $row): bool => service_catalog_type($row) === $catalogType));
+    return count($exact) === 1 ? $exact[0] : null;
 }

@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.50
+# Rollout-Schwerpunkte 0.1.51
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -22,8 +22,13 @@ Regionalverbände.
   Klassenschema. Möglich sind 1–3, A–D oder zwei bis acht frei benannte,
   kumulativ geordnete Klassen. Auch beim DSV ist die vorgelagerte Klasse 0 fest
   für Rolloutobjekte ohne erforderliche DSV-Unterstützungsleistung reserviert.
-- Eine Leistung kann Regionalverbänden, FI und DSV gleichzeitig zugeordnet
-  sein; FI und DSV werden getrennt ausgewählt.
+- Es gibt drei getrennte Kataloge: Bankfachlich (Regionalverbände bzw.
+  Projekt), FI und DSV. Jede Leistung gehört genau einem Katalog; derselbe Name
+  darf in verschiedenen Katalogen vorkommen (z. B. „Kickoff“ bankfachlich und
+  bei der FI), innerhalb eines Katalogs nicht. Ältere, mehreren Anbietern
+  zugeordnete Leistungen werden auf der Seite „Mehrfach zugeordnete Leistungen
+  aufräumen“ (Hinweis im Katalog) je Eintrag aufgeteilt oder auf einen Anbieter
+  festgelegt; der Importassistent zeigt die Änderungen vorher an.
 - Erbringung: Bankfachliche Leistungen werden regional (durch die
   Regionalverbände, die dazu befragt werden) oder zentral (durch das Projekt)
   erbracht. Der Katalog gibt die Erbringung vor; je Rolloutobjekt kann sie in
@@ -33,7 +38,7 @@ Regionalverbände.
   zugeordnet, dessen Klasse passt (kumulativ), auch neuen Objekten, und kann
   weder in der Projektmatrix noch per Import abgewählt werden (z. B. ROLF;
   praktisch darf ein ROLF für das ganze Projekt geschrieben werden).
-- Je Leistung wird festgelegt, ob sie obligatorisch ist und ob ein
+- Je Leistung wird festgelegt, ob ein
   Termin/Zeitraum relevant ist.
 - Je Projekt und Leistungserbringer wird genau ein Ansprechpartner gepflegt.
 - Regionalverbände erfassen bei B–D die Bereitstellungsart: selbst, anderer
@@ -201,7 +206,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.50**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.51**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.
