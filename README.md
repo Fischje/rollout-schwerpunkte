@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.52
+# Rollout-Schwerpunkte 0.1.53
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -175,9 +175,26 @@ einen externen Dienstleister bereitstellt; **FI** und **DSV** – die geplanten
 Leistungen je Rolloutobjekt. Offene Punkte (keine Angabe oder keine
 Bereitstellung) erscheinen zusätzlich je Rolloutobjekt und lassen sich als Excel
 exportieren. RV-Abfragedateien und Gesamtexport enthalten die Spalte „Block“
-und sind nach Block, Klasse und Name sortiert; zentral erbrachte bankfachliche
+und sind nach Block, Klasse und Name sortiert (in der RV-Abfragedatei steht der
+Block „Regionalverbände (regional)“ mit den abzufragenden Leistungen oben); zentral erbrachte bankfachliche
 Leistungen stehen im Gesamtexport einmal mit „Projekt“ als Erbringer statt je
 Regionalverband.
+
+## Wer hat zuletzt geändert?
+
+Es gilt: Wer zuletzt etwas gesagt hat, überschreibt die Angabe des anderen –
+egal ob TPL-/PL-Import, Rückmeldung von FI, DSV oder Regionalverband oder
+Speichern in der Projektmatrix. Jede Nutzung am Rolloutobjekt, jede Projektangabe
+eines Leistungserbringers und jede Angabe am Rolloutobjekt trägt dazu einen
+Herkunftsvermerk („zuletzt: Rückmeldung FI · Name, Datum“). Der Vermerk ändert
+sich nur, wenn sich der Inhalt tatsächlich ändert; unverändert erneut
+gespeicherte oder importierte Angaben behalten ihn. Projektmatrix und Übersicht
+zeigen ihn an, die Importbestätigung nennt ihn beim bisherigen Wert.
+
+Gleichnamige Leistungen aus verschiedenen Katalogen am selben Rolloutobjekt
+(z. B. „Kickoff“ bankfachlich und bei der FI) sind erlaubt, werden aber in
+Projektmatrix und Übersicht mit „⚠ Gleicher Name auch bei …“ markiert. Entsteht
+eine solche Dopplung durch einen Import, weist die Importbestätigung darauf hin.
 
 ## Importspalten
 
@@ -216,7 +233,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.52**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.53**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.

@@ -39,6 +39,7 @@ final class Database
             self::ensureOpenSuggestionTable($db);
             self::ensureDeliveryLevels($db);
             self::ensureServiceNamesPerCatalog($db);
+            self::ensureOriginColumns($db);
             return;
         }
 
@@ -67,6 +68,16 @@ final class Database
     }
 
     /** Seit 0.1.43: Flag „Immer enthalten“ an Leistungen; wird bei bestehenden Datenbanken einmalig ergänzt, das Schema bleibt Version 23. */
+    /** Herkunftsvermerk: wer eine Angabe zuletzt inhaltlich geändert hat (Import, Rückmeldung, Projektmatrix). */
+    private static function ensureOriginColumns(PDO $db): void
+    {
+        foreach (['project_service_rollout_objects', 'project_support_matrix', 'rollout_object_support_matrix'] as $table) {
+            $columns = array_column($db->query('PRAGMA table_info(' . $table . ')')->fetchAll(), 'name');
+            if (!in_array('origin', $columns, true)) $db->exec('ALTER TABLE ' . $table . ' ADD COLUMN origin TEXT');
+            if (!in_array('origin_at', $columns, true)) $db->exec('ALTER TABLE ' . $table . ' ADD COLUMN origin_at TEXT');
+        }
+    }
+
     private static function ensureAlwaysIncludedColumn(PDO $db): void
     {
         $columns = array_column($db->query('PRAGMA table_info(support_services)')->fetchAll(), 'name');

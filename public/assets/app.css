@@ -110,3 +110,7 @@ body { background:var(--spark-light); color:var(--spark-dark); }
 .delivery-level-central { background-color:#e9eaec; }
 .ov-chip-central { background:#e9eaec; }
 .ov-chip-regional { background:#fff7cc; }
+
+/* Herkunftsvermerk und Dopplungshinweis */
+.origin-note{font-size:.68rem;line-height:1.2;color:var(--bs-secondary-color,#6c757d);margin-top:.2rem;white-space:normal}
+.duplicate-badge{background:#fff3cd;color:#664d03;border:1px solid #ffda6a;font-weight:600;white-space:normal;text-align:left;margin-top:.2rem}

@@ -565,3 +565,72 @@ function find_service_by_name(PDO $db, string $name, ?string $catalogType = null
     $exact = array_values(array_filter($matches, static fn(array $row): bool => service_catalog_type($row) === $catalogType));
     return count($exact) === 1 ? $exact[0] : null;
 }
+
+/** Tabellen mit Herkunftsvermerk: Schlüsselspalten und inhaltlich relevante Spalten. */
+function origin_tables(): array {
+    return [
+        'project_service_rollout_objects' => [['project_id', 'support_service_id', 'rollout_object_id'], ['delivery_level']],
+        'project_support_matrix' => [['project_id', 'support_service_id', 'provider_id'], ['offered', 'delivery_mode', 'delivery_partner', 'schedule', 'note']],
+        'rollout_object_support_matrix' => [['rollout_object_id', 'support_service_id', 'provider_id'], ['offered', 'schedule', 'note']],
+    ];
+}
+
+/** Stand vor einer Änderung: je Zeile Inhalt und bisheriger Vermerk. */
+function origin_snapshot(PDO $db): array {
+    $snapshot = [];
+    foreach (origin_tables() as $table => [$keys, $values]) {
+        foreach ($db->query('SELECT * FROM ' . $table)->fetchAll() as $row) {
+            $key = implode(':', array_map(static fn($column) => (string)$row[$column], $keys));
+            $snapshot[$table][$key] = [serialize(array_map(static fn($column) => (string)($row[$column] ?? ''), $values)), $row['origin'] ?? null, $row['origin_at'] ?? null];
+        }
+    }
+    return $snapshot;
+}
+
+/**
+ * Setzt nach einer Änderung den Herkunftsvermerk: Neue oder inhaltlich geänderte Zeilen erhalten
+ * $labelFor($table,$row), unveränderte (auch gelöscht und wieder angelegte) behalten ihren bisherigen Vermerk.
+ */
+function apply_origins(PDO $db, array $before, callable $labelFor): void {
+    $now = date('Y-m-d H:i:s');$user = trim((string)($_SESSION['display_name'] ?? ''));
+    foreach (origin_tables() as $table => [$keys, $values]) {
+        $where = implode(' AND ', array_map(static fn($column) => $column . '=?', $keys));
+        $update = $db->prepare('UPDATE ' . $table . ' SET origin=?,origin_at=? WHERE ' . $where);
+        foreach ($db->query('SELECT * FROM ' . $table)->fetchAll() as $row) {
+            $keyValues = array_map(static fn($column) => $row[$column], $keys);$key = implode(':', array_map('strval', $keyValues));
+            $content = serialize(array_map(static fn($column) => (string)($row[$column] ?? ''), $values));$old = $before[$table][$key] ?? null;
+            if ($old && $old[0] === $content) {$origin = $old[1];$at = $old[2];}
+            else {$label = (string)$labelFor($table, $row);if ($label === '') continue;$origin = $label . ($user !== '' ? ' · ' . $user : '');$at = $now;}
+            if (($row['origin'] ?? null) !== $origin || ($row['origin_at'] ?? null) !== $at) $update->execute(array_merge([$origin, $at], $keyValues));
+        }
+    }
+}
+
+/** Kurzer Vermerk für die Anzeige, z. B. „Rückmeldung FI · Anna, 05.10.2026 14:30“. */
+function origin_text(?string $origin, ?string $at): string {
+    if (!$origin) return '';
+    $date = $at ? date('d.m.Y H:i', strtotime($at)) : '';
+    return 'zuletzt: ' . $origin . ($date !== '' ? ', ' . $date : '');
+}
+
+/** Gleichnamige Leistungen am selben Rolloutobjekt (verschiedene Kataloge): [objectId][serviceId] => Liste der anderen Kataloge. */
+function duplicate_service_names(PDO $db, int $projectId): array {
+    $stmt = $db->prepare('SELECT u.rollout_object_id,s.id,s.name FROM project_service_rollout_objects u JOIN support_services s ON s.id=u.support_service_id WHERE u.project_id=? AND s.active=1');
+    $stmt->execute([$projectId]);$groups = [];
+    foreach ($stmt->fetchAll() as $row) $groups[(int)$row['rollout_object_id']][mb_strtolower(trim((string)$row['name']))][] = (int)$row['id'];
+    $ids = [];foreach ($groups as $byName) foreach ($byName as $serviceIds) if (count($serviceIds) > 1) array_push($ids, ...$serviceIds);
+    if (!$ids) return [];
+    $types = [];$services = enrich_support_services($db, $db->query('SELECT * FROM support_services WHERE id IN (' . implode(',', array_unique($ids)) . ')')->fetchAll());
+    foreach ($services as $service) $types[(int)$service['id']] = catalog_type_label(service_catalog_type($service) ?? implode('/', (array)$service['provider_targets']));
+    $result = [];
+    foreach ($groups as $objectId => $byName) foreach ($byName as $serviceIds) if (count($serviceIds) > 1)
+        foreach ($serviceIds as $serviceId) $result[$objectId][$serviceId] = array_values(array_map(static fn($other) => $types[$other] ?? '', array_filter($serviceIds, static fn($other) => $other !== $serviceId)));
+    return $result;
+}
+
+/** Hinweis-Badge für eine gleichnamige Leistung eines anderen Katalogs am selben Rolloutobjekt. */
+function duplicate_badge(array $others): string {
+    if (!$others) return '';
+    $text = 'Gleicher Name auch bei ' . implode(', ', array_unique($others));
+    return '<span class="badge duplicate-badge" title="' . e($text . ' am selben Rolloutobjekt – erlaubt, bitte prüfen, ob beides gewollt ist.') . '">⚠ ' . e($text) . '</span>';
+}

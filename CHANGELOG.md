@@ -1,5 +1,13 @@
 # Änderungsverlauf
 
+## 0.1.53
+
+- Herkunftsvermerk („Letzter gilt“): Nutzungen am Rolloutobjekt, Projektangaben der Leistungserbringer und Angaben am Rolloutobjekt merken sich, wer sie zuletzt inhaltlich geändert hat – TPL-/PL-Import, Rückmeldung FI/DSV/Regionalverband oder Projektmatrix, mit Name und Zeitpunkt. Unverändert erneut gespeicherte oder importierte Angaben behalten ihren Vermerk
+- Anzeige des Vermerks in Projektmatrix und Übersicht; die Importbestätigung zeigt beim bisherigen Wert, von wem er stammt
+- Dopplungshinweis: Gleichnamige Leistungen aus verschiedenen Katalogen am selben Rolloutobjekt werden in Projektmatrix und Übersicht markiert; entsteht eine solche Dopplung durch einen Import, weist die Importbestätigung darauf hin
+- RV-Abfragedatei: Der Block „Regionalverbände (regional)“ mit den abzufragenden Leistungen steht jetzt oben
+- Korrektur: Die TPL-/PL-Datei führte DSV-Leistungen (und ohne Anbieterdaten auch FI-Leistungen) in der Spalte „außerhalb des Katalogs“, was beim Rückimport zu nicht zuordenbaren Zeilen führte. Sie enthält jetzt nur noch bankfachliche und – mit Anbieterdaten – FI-Leistungen; „Datei ist maßgeblich“ entfernt keine DSV-Leistungen mehr
+
 ## 0.1.52
 
 - Projektmatrix und Übersicht werden oben schrittweise eingegrenzt: 1. Projekt, 2. Rolloutobjekt (oder alle), 3. Bereich (Bankfachlich, FI, DSV; in der Übersicht zusätzlich „Alle Bereiche“) – dadurch steht deutlich weniger auf einer Seite
