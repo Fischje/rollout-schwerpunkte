@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.54
+# Rollout-Schwerpunkte 0.1.55
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -180,6 +180,17 @@ Block „Regionalverbände (regional)“ mit den abzufragenden Leistungen oben);
 Leistungen stehen im Gesamtexport einmal mit „Projekt“ als Erbringer statt je
 Regionalverband.
 
+## PowerPoint-Export
+
+Auf der Seite „Übersicht“ erzeugt „Als PowerPoint“ für das gewählte Projekt eine
+Präsentation auf Basis der Vorlage `resources/powerpoint/synchronisation-rollout-vorlage.pptx`
+(Master, Schriften, Titel- und Schlussfolie bleiben erhalten). Inhaltsfolien:
+„Status und Überblick“, „Bankfachliche Leistungen“ und „Leistungen von FI und DSV“,
+alle auf dem Layout „Text-Folie #1“. Passt eine Tabelle nicht auf eine Folie,
+folgen Fortsetzungsfolien. Wird die Vorlage ausgetauscht, müssen die Platzhaltertexte
+„Projektname, Datum“ (Titelfolie) und „Titel der Präsentation | Name | Ort, Datum“
+(Schlussfolie) sowie das Layout „Text-Folie #1“ (`slideLayout18.xml`) erhalten bleiben.
+
 ## Wer hat zuletzt geändert?
 
 Es gilt: Wer zuletzt etwas gesagt hat, überschreibt die Angabe des anderen –
@@ -235,7 +246,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.54**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.55**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.

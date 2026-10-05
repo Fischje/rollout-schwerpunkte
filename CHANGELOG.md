@@ -1,5 +1,12 @@
 # Änderungsverlauf
 
+## 0.1.55
+
+- Neu: Übersicht eines Projekts als PowerPoint („Als PowerPoint“ auf der Übersichtsseite, sobald ein Projekt gewählt ist). Grundlage ist die Vorlage „Synchronisation Rollout“ (`resources/powerpoint/`) mit Master, Schriften, Titel- und Schlussfolie
+- Aufbau: Titelfolie mit Projekt und Datum, „Status und Überblick“ (Kennzahl-Kacheln, Balken der RV-Angaben, Rolloutobjekte mit Klassen und offenen Punkten), „Bankfachliche Leistungen“ (Projekt (zentral) und Farbmatrix Leistung × Regionalverband), „Leistungen von FI und DSV“ (Leistung × Rolloutobjekt), Schlussfolie
+- Reicht der Platz nicht, entstehen Fortsetzungsfolien mit gleichem Titel („(1/2)“) und wiederholter Kopfzeile; der Inhalt wird gleichmäßig verteilt. Ab neun Rolloutobjekten wird die FI-/DSV-Matrix spaltenweise aufgeteilt
+- Fußzeile „Synchronisation Rollout | Projekt | Datum“ und Seitenzahl auf allen Inhaltsfolien; Tabellen und Kacheln bleiben in PowerPoint bearbeitbar
+
 ## 0.1.54
 
 - Projektmatrix: Die Rolloutklasse des gewählten Bereichs (Bankfachlich, FI oder DSV) lässt sich jetzt direkt oben auf der Seite einstellen – für das gewählte Rolloutobjekt oder, bei „Alle Rolloutobjekte“, für jedes Objekt des Projekts. Sie wird mit „Angezeigten Ausschnitt speichern“ übernommen; die Leistungsauswahl darunter richtet sich danach. Ein Wechsel zum Rolloutobjekt-Formular ist dafür nicht mehr nötig
