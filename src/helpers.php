@@ -53,8 +53,17 @@ function cumulative_functional_classes(?string $class): array {
     $position = array_search($class, $order, true);
     return $position === false ? [] : array_slice($order, 0, $position + 1);
 }
+/** FI-Klassenschema (Code => Bezeichnung), beim Start aus der Datenbank geladen; Standard 1–3. */
+function fi_class_registry(?array $levels = null): array {
+    static $registry = ['1' => '1', '2' => '2', '3' => '3'];
+    if ($levels !== null) { $registry = []; foreach ($levels as $level) $registry[(string)$level['class_code']] = (string)$level['class_label']; }
+    return $registry;
+}
+function fi_class_codes(): array { return array_map('strval', array_keys(fi_class_registry())); }
+function fi_class_label(string $code): string { return $code === '0' ? '0 – keine Verbundpartnerleistung erforderlich' : (fi_class_registry()[$code] ?? $code); }
+
 function cumulative_technical_classes(null|int|string $class): array {
-    $order = ['1', '2', '3'];
+    $order = fi_class_codes();
     $position = array_search((string)$class, $order, true);
     return $position === false ? [] : array_slice($order, 0, $position + 1);
 }
@@ -107,7 +116,7 @@ function enrich_support_services(PDO $db, array $services): array {
         $service['provider_targets'] = $targetCache[$dbKey][(int)$service['id']] ?? [];
         $service['dsv_class_labels']=$dsvLabels;
         $service['requires_delivery_source'] = (int)(bool)array_intersect(
-            ['functional:B', 'functional:C', 'functional:D'],
+            ['functional:A', 'functional:B', 'functional:C', 'functional:D'],
             $service['class_codes']
         );
     }
@@ -139,7 +148,7 @@ function service_class_badges(array $service): string {
         if ($dimension === 'functional' && in_array($code, ['A','B','C','D'], true)) {
             $badges[] = '<span class="badge service-class-badge class-tone-functional-' . strtolower($code) . '">Bankfachlich ' . $code . '</span>';
         }
-        if ($dimension === 'technical' && in_array($code, ['1','2','3'], true)) {
+        if ($dimension === 'technical' && in_array($code, fi_class_codes(), true)) {
             $badges[] = '<span class="badge service-class-badge class-tone-technical-' . $code . '">FI ' . $code . '</span>';
         }
         if ($dimension === 'dsv' && preg_match('/^L([1-8])$/',$code,$match)) {$label=(string)(($service['dsv_class_labels']??[])[$code]??$code);$tone=min(3,(int)$match[1]);$badges[]='<span class="badge service-class-badge class-tone-technical-'.$tone.'">DSV '.e($label).'</span>';}
@@ -158,7 +167,7 @@ function project_rollout_class_scope(PDO $db, int $projectId): array {
         $dsv=array_values(array_unique(array_merge($dsv,cumulative_dsv_classes($object['dsv_class_code']??null))));
     }
     $functional = array_values(array_intersect(['A','B','C','D'], $functional));
-    $technical = array_values(array_intersect(['1','2','3'], $technical));
+    $technical = array_values(array_intersect(fi_class_codes(), $technical));
     return ['functional' => $functional, 'technical' => $technical, 'dsv'=>$dsv];
 }
 
@@ -168,10 +177,11 @@ function project_rollout_class_scope(PDO $db, int $projectId): array {
  * die gleichnamigen Auswahlfelder werden in der Oberfläche synchronisiert.
  * Innerhalb jeder Klasse wird deutsch alphabetisch sortiert.
  */
-function service_selection_groups(array $services, array $allowedFunctional = ['A','B','C','D'], array $allowedTechnical = ['1','2','3'], array $allowedDsv = ['L1','L2','L3','L4','L5','L6','L7','L8']): array {
+function service_selection_groups(array $services, array $allowedFunctional = ['A','B','C','D'], ?array $allowedTechnical = null, array $allowedDsv = ['L1','L2','L3','L4','L5','L6','L7','L8']): array {
+    $allowedTechnical ??= fi_class_codes();
     $groups = [
         'functional' => array_fill_keys(['A','B','C','D'], []),
-        'technical' => array_fill_keys(['1','2','3'], []),
+        'technical' => array_fill_keys(fi_class_codes(), []),
         'dsv'=>array_fill_keys(['L1','L2','L3','L4','L5','L6','L7','L8'],[]),
     ];
     foreach ($services as $service) {
@@ -185,7 +195,7 @@ function service_selection_groups(array $services, array $allowedFunctional = ['
         }
         foreach ([
             'functional' => [['A','B','C','D'], $allowedFunctional],
-            'technical' => [['1','2','3'], $allowedTechnical],
+            'technical' => [fi_class_codes(), $allowedTechnical],
             'dsv'=>[['L1','L2','L3','L4','L5','L6','L7','L8'],$allowedDsv],
         ] as $dimension => [$order, $allowed]) foreach ($order as $code) {
             if (in_array($code, $allowed, true) && in_array($code, $codes[$dimension], true)) {
@@ -255,10 +265,43 @@ function prune_invalid_service_rollout_usage(PDO $db, ?int $projectId = null, ?i
     foreach($rows as $row)if(!isset($services[(int)$row['support_service_id']])||!service_applies_to_rollout_object($services[(int)$row['support_service_id']],$row))$delete->execute([(int)$row['project_id'],(int)$row['support_service_id'],(int)$row['rollout_object_id']]);
 }
 
+/**
+ * Seit 0.1.50 gibt es kein „obligatorisch“ mehr: Ob die Regionalverbände eine Leistung erbringen,
+ * regelt die Erbringung zentral/regional. Die Funktion bleibt für bestehende Aufrufer erhalten.
+ */
 function service_is_mandatory_for_provider(array $service, array $provider): bool {
-    if (!empty($service['mandatory_for_all'])) return service_applies_to_provider($service, $provider);
-    $baseClass = ($provider['type'] ?? '') === 'RV' ? 'functional:A' : (($provider['type']??'')==='DSV'?'dsv:L1':'technical:1');
-    return in_array($baseClass, (array)($service['class_codes'] ?? []), true);
+    return false;
+}
+
+/** Nur bankfachliche Leistungen mit Zuständigkeit Regionalverbände können regional erbracht werden. */
+function service_regional_capable(array $service): bool {
+    if (!in_array('RV', (array)($service['provider_targets'] ?? []), true)) return false;
+    foreach ((array)($service['class_codes'] ?? []) as $code) if (str_starts_with((string)$code, 'functional:')) return true;
+    return false;
+}
+
+/** Wirksame Erbringung an einem Rolloutobjekt: Abweichung am Objekt, sonst Katalogvorgabe; nicht regional fähige Leistungen sind immer zentral. */
+function service_effective_delivery(array $service, ?string $objectLevel = null): string {
+    if (!service_regional_capable($service)) return 'central';
+    if (in_array($objectLevel, ['regional', 'central'], true)) return $objectLevel;
+    return ($service['default_delivery'] ?? 'regional') === 'central' ? 'central' : 'regional';
+}
+
+/** Je Projektleistung: Rolloutobjekte mit regionaler bzw. zentraler Erbringung und ob die Regionalverbände gefragt werden. */
+function project_service_delivery_map(PDO $db, int $projectId, array $services): array {
+    $stmt = $db->prepare('SELECT support_service_id, rollout_object_id, delivery_level FROM project_service_rollout_objects WHERE project_id=?');
+    $stmt->execute([$projectId]);
+    $usage = [];
+    foreach ($stmt->fetchAll() as $row) $usage[(int)$row['support_service_id']][(int)$row['rollout_object_id']] = $row['delivery_level'];
+    $map = [];
+    foreach ($services as $service) {
+        $id = (int)$service['id'];
+        $entry = ['regional' => [], 'central' => [], 'levels' => $usage[$id] ?? []];
+        foreach ($usage[$id] ?? [] as $objectId => $level) $entry[service_effective_delivery($service, $level)][] = (int)$objectId;
+        $entry['rv_required'] = service_regional_capable($service) && ($entry['regional'] || (!($usage[$id] ?? []) && service_effective_delivery($service) === 'regional'));
+        $map[$id] = $entry;
+    }
+    return $map;
 }
 
 function normalize_delivery_mode(string $value): string {
@@ -436,14 +479,13 @@ function app_version(?string $fallback = null): string {
     return changelog_entries()[0]['version'] ?? ($fallback ?? '0.0.0');
 }
 
-/** Kennzeichnungen „Immer enthalten“ und „Obligatorisch“ (Flag oder automatisch über die Basisklasse). */
+/** Kennzeichnungen „Immer enthalten“ und Erbringung (zentral/regional) laut Katalog. */
 function service_flag_badges(array $service): string {
     $badges = '';
     if (!empty($service['always_included'])) $badges .= '<span class="badge text-bg-primary" title="Automatisch an jedem passenden Rolloutobjekt, nicht abwählbar">Immer enthalten</span> ';
-    if (!empty($service['mandatory_for_all'])) return $badges . '<span class="badge text-bg-danger" title="Die Leistungserbringer werden nicht nach der Bereitstellung gefragt">Obligatorisch</span>';
-    $base = [];
-    foreach (['functional:A' => 'RV', 'technical:1' => 'FI', 'dsv:L1' => 'DSV'] as $code => $label) if (in_array($code, (array)($service['class_codes'] ?? []), true)) $base[] = $label;
-    if ($base) $badges .= '<span class="badge text-bg-danger" title="Basisklasse: automatisch obligatorisch, die Leistungserbringer werden nicht nach der Bereitstellung gefragt">Obligatorisch (Basisklasse ' . e(implode(', ', $base)) . ')</span>';
+    if (service_regional_capable($service)) $badges .= service_effective_delivery($service) === 'central'
+        ? '<span class="badge text-bg-dark" title="Katalogvorgabe: zentral durch das Projekt erbracht; die Regionalverbände werden nicht gefragt (je Rolloutobjekt änderbar)">Zentral</span>'
+        : '<span class="badge text-bg-warning" title="Katalogvorgabe: regional durch die Regionalverbände erbracht; sie werden nach der Bereitstellung gefragt (je Rolloutobjekt änderbar)">Regional (RV)</span>';
     return $badges;
 }
 

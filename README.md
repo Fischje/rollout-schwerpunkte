@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.49
+# Rollout-Schwerpunkte 0.1.50
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -14,19 +14,21 @@ Regionalverbände.
 - Zusätzliche, nicht standardisierte Leistungen gehören genau zu einem Projekt.
 - A–D bezeichnet die Rolloutklasse Bankfachlich und steuert Leistungen der
   Regionalverbände kumulativ: C umfasst A, B und C.
-- FI verwendet die Klassen 1–3 kumulativ: 2 umfasst 1 und 2. Die feste
-  Klasse 0 kennzeichnet Rolloutobjekte, bei denen keine FI-Unterstützungsleistung
-  erforderlich ist.
+- FI und DSV verwenden je ein eigenes, unter `Leistungserbringer`
+  konfigurierbares, kumulatives Klassenschema (zwei bis acht Stufen, Standard
+  1–3). Die feste Klasse 0 kennzeichnet Rolloutobjekte, bei denen keine
+  Unterstützungsleistung des jeweiligen Verbunddienstleisters erforderlich ist.
 - Der DSV verwendet ein eigenes, unter `Leistungserbringer` konfigurierbares
   Klassenschema. Möglich sind 1–3, A–D oder zwei bis acht frei benannte,
   kumulativ geordnete Klassen. Auch beim DSV ist die vorgelagerte Klasse 0 fest
   für Rolloutobjekte ohne erforderliche DSV-Unterstützungsleistung reserviert.
 - Eine Leistung kann Regionalverbänden, FI und DSV gleichzeitig zugeordnet
   sein; FI und DSV werden getrennt ausgewählt.
-- „Obligatorisch“ bedeutet: Die Leistungserbringer werden nicht gefragt, ob sie
-  die Leistung bereitstellen, sie ist verbindlich. Das gilt automatisch für die
-  Basisklassen (Bankfachlich A, FI 1, erste DSV-Klasse) und zusätzlich für
-  Leistungen mit dem Flag „obligatorisch“.
+- Erbringung: Bankfachliche Leistungen werden regional (durch die
+  Regionalverbände, die dazu befragt werden) oder zentral (durch das Projekt)
+  erbracht. Der Katalog gibt die Erbringung vor; je Rolloutobjekt kann sie in
+  der Projektmatrix oder über die TPL-/PL-Datei geändert werden. FI- und
+  DSV-Leistungen sind immer zentral.
 - „Immer enthalten“ ist ein eigenes Flag: Die Leistung wird jedem Rolloutobjekt
   zugeordnet, dessen Klasse passt (kumulativ), auch neuen Objekten, und kann
   weder in der Projektmatrix noch per Import abgewählt werden (z. B. ROLF;
@@ -199,7 +201,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.49**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.50**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.
