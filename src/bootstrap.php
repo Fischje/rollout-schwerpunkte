@@ -25,3 +25,4 @@ $config['app_version'] = app_version($config['app_version'] ?? null);
 
 $db = Database::connect($config['db_path']);
 Database::initialize($db, __DIR__ . '/schema.sql');
+fi_class_registry(provider_class_levels($db, 'FI'));

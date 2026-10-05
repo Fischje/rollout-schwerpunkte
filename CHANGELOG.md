@@ -1,5 +1,16 @@
 # Änderungsverlauf
 
+## 0.1.50
+
+- FI-Klassenschema ist wie beim DSV unter „Leistungserbringer“ einstellbar (zwei bis acht Stufen mit eigenen Bezeichnungen, Klasse 0 fest); Auswahllisten, Excel-Dateien und Prüfungen verwenden das gepflegte Schema
+- Neue Grafik „Kombinationsmöglichkeiten der Klassen“ unter den Klassenschemata: Bankfachlich A–D × FI- bzw. DSV-Klassen mit der Zahl der Rolloutobjekte je Kombination
+- „Obligatorisch“ entfällt und wird durch die Erbringung ersetzt: Bankfachliche Leistungen werden entweder regional (durch die Regionalverbände) oder zentral (durch das Projekt) erbracht; FI- und DSV-Leistungen sind immer zentral
+- Die Erbringung hat eine Vorgabe im Katalog (Katalog-Editor, Leistungseditor, Katalog-Excel „Zentral erbracht“) und lässt sich je Rolloutobjekt ändern: in der Projektmatrix unter jedem Haken sowie über die neue Spalte „Erbringung“ der TPL-/PL-Datei; der Importassistent zeigt die Änderung im Vergleich „Bisher → neu“
+- Die automatische Regel „Klasse A bzw. 1 ist obligatorisch“ ist entfernt; bei der Umstellung werden bisher als obligatorisch markierte Leistungen zu „zentral“, alle anderen zu „regional“
+- RV-Abfragedatei, Projektmatrix, Übersicht und Gesamtexport fragen bzw. werten nur noch regional zu erbringende Leistungen aus; zentrale Leistungen erscheinen als Information („zentral durch das Projekt erbracht“), die Rolloutobjekte sind nach regional/zentral gekennzeichnet
+- Katalog und Projektmatrix kennzeichnen Leistungen mit „Zentral“ bzw. „Regional (RV)“ statt „Obligatorisch“
+- Korrektur: Tabellenblattnamen in Excel-Exporten werden wieder korrekt bereinigt (bisher PHP-Warnung)
+
 ## 0.1.49
 
 - Neue Seite „Übersicht“ (Hauptmenü): Alle Projekte mit Stand der Zusagen der Regionalverbände, Zahl der offenen Punkte sowie geplanten FI- und DSV-Leistungen

@@ -100,3 +100,13 @@ body { background:var(--spark-light); color:var(--spark-dark); }
 .ov-row-gap > td:first-child { box-shadow: inset 4px 0 0 #f1c40f; }
 .ov-object-gap { background:#fffbea; border-color:#f1d75c!important; }
 .ov-object-ok { background:#f3faf5; }
+.combo-table th { white-space:normal!important; }
+.combo-cell { border-radius:.5rem; padding:.45rem .3rem; min-width:4.2rem; border:1px solid #f0c7ca; display:flex; flex-direction:column; align-items:center; gap:.1rem; }
+.combo-cell.combo-empty { background:#fafafa; border-color:#e6e7e9; color:#9aa0a6; }
+.combo-code { font-size:.72rem; opacity:.85; }
+.class-chip { display:inline-block; background:#fde7e8; color:#9b1c22; border-radius:999px; padding:.1rem .6rem; font-weight:600; }
+.delivery-level-select { font-size:.72rem; padding:.1rem 1.6rem .1rem .45rem; min-width:6.2rem; margin:0 auto; }
+.delivery-level-regional { background-color:#fff7cc; }
+.delivery-level-central { background-color:#e9eaec; }
+.ov-chip-central { background:#e9eaec; }
+.ov-chip-regional { background:#fff7cc; }

@@ -37,6 +37,7 @@ final class Database
             self::ensureNoSupportLevels($db);
             self::ensureAlwaysIncludedColumn($db);
             self::ensureOpenSuggestionTable($db);
+            self::ensureDeliveryLevels($db);
             return;
         }
 
@@ -116,6 +117,26 @@ final class Database
             throw $error;
         } finally {
             $db->exec('PRAGMA foreign_keys = ON');
+        }
+    }
+
+    /**
+     * Seit 0.1.50: Erbringung zentral (Projekt/FI/DSV) oder regional (Regionalverbände) statt „obligatorisch“.
+     * Katalogvorgabe je Leistung, Abweichung je Rolloutobjekt. Beim Umstieg wird „obligatorisch: Ja“ zu „zentral“.
+     */
+    private static function ensureDeliveryLevels(PDO $db): void
+    {
+        $serviceColumns = array_column($db->query('PRAGMA table_info(support_services)')->fetchAll(), 'name');
+        if (!in_array('default_delivery', $serviceColumns, true)) {
+            $db->exec("ALTER TABLE support_services ADD COLUMN default_delivery TEXT NOT NULL DEFAULT 'regional' CHECK(default_delivery IN ('regional','central'))");
+            $db->exec("UPDATE support_services SET default_delivery='central' WHERE mandatory_for_all=1");
+            $db->exec("UPDATE support_services SET mandatory_for_all=0");
+            $db->exec("DELETE FROM project_support_matrix WHERE automatic=1 AND offered=1 AND TRIM(note)='' AND TRIM(schedule)='' AND TRIM(delivery_mode)='' AND TRIM(delivery_partner)=''");
+            $db->exec("UPDATE project_support_matrix SET automatic=0");
+        }
+        $usageColumns = array_column($db->query('PRAGMA table_info(project_service_rollout_objects)')->fetchAll(), 'name');
+        if (!in_array('delivery_level', $usageColumns, true)) {
+            $db->exec("ALTER TABLE project_service_rollout_objects ADD COLUMN delivery_level TEXT CHECK(delivery_level IN ('regional','central') OR delivery_level IS NULL)");
         }
     }
 
