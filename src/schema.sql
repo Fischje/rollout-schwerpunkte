@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS rollout_object_provider_classes (
 
 CREATE TABLE IF NOT EXISTS support_services (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
     description TEXT NOT NULL DEFAULT '',
     is_standard INTEGER NOT NULL DEFAULT 1,
     project_id INTEGER,
