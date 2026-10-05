@@ -1,5 +1,10 @@
 # Änderungsverlauf
 
+## 0.1.54
+
+- Projektmatrix: Die Rolloutklasse des gewählten Bereichs (Bankfachlich, FI oder DSV) lässt sich jetzt direkt oben auf der Seite einstellen – für das gewählte Rolloutobjekt oder, bei „Alle Rolloutobjekte“, für jedes Objekt des Projekts. Sie wird mit „Angezeigten Ausschnitt speichern“ übernommen; die Leistungsauswahl darunter richtet sich danach. Ein Wechsel zum Rolloutobjekt-Formular ist dafür nicht mehr nötig
+- Wird eine Klasse gesenkt, entfallen die Nutzungen von Leistungen, die für die neue Klasse nicht mehr passen (wie beim Bearbeiten des Rolloutobjekts)
+
 ## 0.1.53
 
 - Herkunftsvermerk („Letzter gilt“): Nutzungen am Rolloutobjekt, Projektangaben der Leistungserbringer und Angaben am Rolloutobjekt merken sich, wer sie zuletzt inhaltlich geändert hat – TPL-/PL-Import, Rückmeldung FI/DSV/Regionalverband oder Projektmatrix, mit Name und Zeitpunkt. Unverändert erneut gespeicherte oder importierte Angaben behalten ihren Vermerk

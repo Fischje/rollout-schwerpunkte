@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.53
+# Rollout-Schwerpunkte 0.1.54
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -219,7 +219,9 @@ Die Projektmatrix nutzt die vollständige verfügbare Browserbreite. Wie die
 FI oder DSV) eingegrenzt; im Bereich Bankfachlich ist sie in die Blöcke
 „Projekt (zentral)“ und „Regionalverbände (regional)“ geteilt. Gespeichert wird
 nur der angezeigte Ausschnitt – andere Bereiche und Rolloutobjekte bleiben
-unverändert; beim Wechsel mit ungespeicherten Änderungen fragt die Seite nach.
+unverändert. Oben auf der Seite lässt sich außerdem die Rolloutklasse des
+gewählten Bereichs je Rolloutobjekt einstellen (ohne Umweg über das
+Rolloutobjekt-Formular); beim Wechsel mit ungespeicherten Änderungen fragt die Seite nach.
 Leistungsauswahlen sind zuerst nach Bankfachlichem Rollout, FI und DSV, danach
 nach Klasse und innerhalb der Klasse alphabetisch sortiert. Fachliche Klassen
 werden in abgestuften Rottönen, FI- und DSV-Klassen in abgestuften Blautönen
@@ -233,7 +235,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.53**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.54**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.
