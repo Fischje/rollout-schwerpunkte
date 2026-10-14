@@ -1,5 +1,12 @@
 # Änderungsverlauf
 
+## 0.1.57
+
+- Begriff: Aus „Projektleistung“ wird überall „Rolloutleistung“ (Oberfläche, Exporte, Datensatz-Spalte). Ältere Dateien mit „Projektleistung“ lassen sich weiterhin importieren
+- RV-Abfragedatei neu sortiert: Projekt, Datensatz, Rolloutleistung, Leistungsklasse, Erbringung, dann die Eingaben Bereitstellungsart, anderer Regionalverband / externer Dienstleister, Termin / Zeitraum, Bemerkung, Ansprechpartner, Telefonnummer; Informationsspalten (genutzt für Rolloutobjekte, erbracht durch, Block, FI-/DSV-Planung, Projektleitung usw.) stehen dahinter
+- RV-Abfragedatei: Eine Spalte „Leistungsklasse“ zeigt bei jeder Leistung die Klasse im eigenen Katalog (A–D, „FI 1“, „DSV …“); bisher fehlte z. B. die DSV-Klasse. Nicht mehr benötigte Spalten (Rolloutobjekt, Beginn/Ende, „Angeboten“, „Obligatorisch“) entfallen
+- Projektliste aufgeräumt: Die Rolloutobjekte stehen kompakt neben dem Projekt (Zeitraum und Klassen Bankfachlich/FI/DSV, Link direkt in die Matrix des Objekts); ab sieben Objekten klappt der Rest unter „+ n weitere“ ein. Auf dem Handy werden Projekt und Objekte untereinander gezeigt
+
 ## 0.1.56
 
 - PowerPoint-Export: Die Unterzeile der FI-/DSV-Folie nennt nur noch die Zahl der Leistungen je Bereich im Projekt (ohne die aufaddierten Planungen)

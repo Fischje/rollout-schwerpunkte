@@ -287,7 +287,7 @@ function service_effective_delivery(array $service, ?string $objectLevel = null)
     return ($service['default_delivery'] ?? 'regional') === 'central' ? 'central' : 'regional';
 }
 
-/** Je Projektleistung: Rolloutobjekte mit regionaler bzw. zentraler Erbringung und ob die Regionalverbände gefragt werden. */
+/** Je Rolloutleistung: Rolloutobjekte mit regionaler bzw. zentraler Erbringung und ob die Regionalverbände gefragt werden. */
 function project_service_delivery_map(PDO $db, int $projectId, array $services): array {
     $stmt = $db->prepare('SELECT support_service_id, rollout_object_id, delivery_level FROM project_service_rollout_objects WHERE project_id=?');
     $stmt->execute([$projectId]);
@@ -413,7 +413,7 @@ function sync_mandatory_services(PDO $db, ?int $onlyObjectId = null, ?int $onlyP
 /**
  * „Immer enthalten“: Solche Leistungen werden jedem Rolloutobjekt zugeordnet, dessen
  * Klasse zur Leistung passt (kumulativ), und lassen sich nicht abwählen.
- * Zusätzliche Projektleistungen gelten nur innerhalb ihres Projekts.
+ * Zusätzliche Rolloutleistungen gelten nur innerhalb ihres Projekts.
  */
 function sync_always_included_services(PDO $db, ?int $onlyProjectId = null): void
 {
@@ -498,7 +498,7 @@ function service_provider_summary(array $service): string {
 }
 
 /**
- * Stand der Leistungserbringung eines Leistungserbringers für eine Projektleistung.
+ * Stand der Leistungserbringung eines Leistungserbringers für eine Rolloutleistung.
  * Rückgabe: ['key'=>…, 'label'=>…, 'by'=>…]; key ∈ mandatory, self, other_rv, external, none, open, planned, not_planned, na.
  * Als Lücke gelten „open“ (keine Angabe) und „none“ (keine Bereitstellung).
  */
@@ -540,7 +540,7 @@ function catalog_dimension(string $type): string {
 
 /**
  * Ist der Name im angegebenen Katalog bereits vergeben? Standardleistungen sind katalogweit eindeutig,
- * zusätzliche Projektleistungen innerhalb ihres Projekts. Groß-/Kleinschreibung und Leerzeichen zählen nicht.
+ * zusätzliche Rolloutleistungen innerhalb ihres Projekts. Groß-/Kleinschreibung und Leerzeichen zählen nicht.
  */
 function service_name_taken(PDO $db, string $name, string $catalogType, int $excludeId = 0, ?int $projectId = null): ?array {
     $key = mb_strtolower((string)preg_replace('/[^a-zA-Z0-9äöüÄÖÜß]/u', '', $name));

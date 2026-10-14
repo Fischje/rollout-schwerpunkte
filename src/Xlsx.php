@@ -95,7 +95,12 @@ final class Xlsx
         $layout = (string)($options['layout'] ?? '');
         $tplLayout = $layout === 'tpl-planning';
         $providerLayout = $layout === 'provider-feedback';
-        $styledLayout = $tplLayout || $providerLayout;
+        $rvLayout = $layout === 'rv-feedback';
+        $styledLayout = $tplLayout || $providerLayout || $rvLayout;
+        // RV-Abfragedatei: Spalten werden über ihre Überschriften angesprochen, nicht über feste Positionen
+        $rvColumn = [];
+        if ($rvLayout) foreach (array_values($rows[0] ?? []) as $index => $header) $rvColumn[(string)$header] = $index;
+        $rvInfoStart = $rvColumn['Genutzt für Rolloutobjekte'] ?? PHP_INT_MAX;
         $xmlRows = '';
         foreach ($rows as $rowNumber => $row) {
             $cells = '';
@@ -106,6 +111,20 @@ final class Xlsx
                 if ($styledLayout) {
                     $rowType = mb_strtolower(trim((string)($row[1] ?? '')));
                     $isProjectRow = $rowNumber > 0 && $rowType === 'projekt';
+                    if ($rvLayout) {
+                        $pick = static fn(array $names): array => array_values(array_filter(array_map(static fn($name) => $rvColumn[$name] ?? null, $names), static fn($index) => $index !== null));
+                        $editableColumns = match (true) {
+                            $isProjectRow => $pick(['Ansprechpartner', 'Telefonnummer']),
+                            $rowType === 'neue rolloutleistung' || $rowType === 'neue projektleistung' => $pick(['Rolloutleistung', 'Leistungsklasse', 'Bereitstellungsart', 'Anderer Regionalverband / externer Dienstleister', 'Termin / Zeitraum', 'Bemerkung']),
+                            default => $pick(['Bereitstellungsart', 'Anderer Regionalverband / externer Dienstleister', 'Termin / Zeitraum', 'Bemerkung']),
+                        };
+                        if ($columnNumber === ($rvColumn['Termin / Zeitraum'] ?? -1) && mb_strtolower(trim((string)$value)) === 'nicht relevant') $editableColumns = array_values(array_diff($editableColumns, [$columnNumber]));
+                        $informationOnly = mb_strtolower(trim((string)($row[$rvColumn['Nur Information'] ?? -1] ?? ''))) === 'ja';
+                        $styleId = $rowNumber === 0 ? 1 : ($informationOnly || $columnNumber >= $rvInfoStart ? 6 : (in_array($columnNumber, $editableColumns, true) ? ($isProjectRow ? 5 : 4) : ($isProjectRow ? 3 : 2)));
+                        $style = ' s="' . $styleId . '"';
+                        $cells .= '<c r="' . $ref . '"' . $style . ' t="inlineStr"><is><t xml:space="preserve">' . $safe . '</t></is></c>';
+                        continue;
+                    }
                     if ($tplLayout) {
                         $editableColumns = match ($rowType) {
                             'projekt' => [7,8,13],
@@ -142,7 +161,24 @@ final class Xlsx
         $styleContentType = '';
         $styleRelationship = '';
         $styles = null;
-        if ($styledLayout) {
+        if ($rvLayout) {
+            $rvWidths = ['Projekt' => 30, 'Datensatz' => 20, 'Rolloutleistung' => 38, 'Leistungsklasse' => 14, 'Erbringung (Information)' => 22, 'Bereitstellungsart' => 26, 'Anderer Regionalverband / externer Dienstleister' => 32, 'Termin / Zeitraum' => 20, 'Bemerkung' => 34, 'Ansprechpartner' => 22, 'Telefonnummer' => 18, 'Genutzt für Rolloutobjekte' => 36, 'Erbracht durch' => 46, 'Block' => 26, 'FI-Planung (Information)' => 30, 'DSV-Planung (Information)' => 30, 'Leistungserbringer' => 18, 'Projektleitung' => 20, 'TPL Rollout' => 20];
+            $columns = '';
+            foreach ($rvColumn as $header => $index) {
+                $hidden = in_array($header, ['Nur Information', 'Leistung-ID'], true) ? ' hidden="1"' : '';
+                $columns .= '<col min="' . ($index + 1) . '" max="' . ($index + 1) . '" width="' . ($rvWidths[$header] ?? 12) . '" customWidth="1"' . $hidden . '/>';
+            }
+            $sheetBeforeData = '<sheetViews><sheetView showGridLines="0" workbookViewId="0"><pane xSplit="3" ySplit="1" topLeftCell="D2" activePane="bottomRight" state="frozen"/><selection pane="bottomRight" activeCell="D2" sqref="D2"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="18"/><cols>' . $columns . '</cols>';
+            $classLetter = self::columnName($rvColumn['Leistungsklasse'] ?? 3);
+            $modeLetter = self::columnName($rvColumn['Bereitstellungsart'] ?? 5);
+            $partnerLetter = self::columnName($rvColumn['Anderer Regionalverband / externer Dienstleister'] ?? 6);
+            $validations = '<dataValidations count="2"><dataValidation type="list" allowBlank="1" showErrorMessage="1" errorTitle="Ungültige Leistungsklasse" error="Für neue Rolloutleistungen bitte A, B, C oder D auswählen." sqref="' . $classLetter . '2:' . $classLetter . $lastRow . '"><formula1>&quot;A,B,C,D&quot;</formula1></dataValidation><dataValidation type="list" allowBlank="1" showErrorMessage="1" errorTitle="Ungültige Bereitstellungsart" error="Bitte einen Eintrag aus der Liste auswählen." sqref="' . $modeLetter . '2:' . $modeLetter . $lastRow . '"><formula1>&quot;Eigene Bereitstellung,Anderer Regionalverband,Externer Dienstleister,Keine Bereitstellung&quot;</formula1></dataValidation></dataValidations>';
+            $conditional = '<conditionalFormatting sqref="' . $modeLetter . '2:' . $partnerLetter . $lastRow . '"><cfRule type="expression" dxfId="0" priority="1"><formula>$' . $modeLetter . '2=&quot;Eigene Bereitstellung&quot;</formula></cfRule><cfRule type="expression" dxfId="1" priority="2"><formula>$' . $modeLetter . '2=&quot;Anderer Regionalverband&quot;</formula></cfRule><cfRule type="expression" dxfId="2" priority="3"><formula>$' . $modeLetter . '2=&quot;Externer Dienstleister&quot;</formula></cfRule><cfRule type="expression" dxfId="3" priority="4"><formula>$' . $modeLetter . '2=&quot;Keine Bereitstellung&quot;</formula></cfRule></conditionalFormatting>';
+            $sheetAfterData = '<autoFilter ref="A1:' . $lastColumn . $lastRow . '"/>' . $conditional . $validations . '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/><pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/>';
+            $styleContentType = '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>';
+            $styleRelationship = '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>';
+            $styles = self::planningStyles();
+        } elseif ($styledLayout) {
             $widths = $tplLayout ? [32,22,38,14,14,24,30,22,22,38,25,30,45,36] : [30,22,34,14,14,24,30,20,20,36,25,30,40,18,22,18,14,16,25,34,20,34];
             if ($providerLayout && ($options['provider_type'] ?? '') === 'RV') $widths = array_merge($widths, [40,40,4,46,26]);
             $columns = '';

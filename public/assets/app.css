@@ -114,3 +114,25 @@ body { background:var(--spark-light); color:var(--spark-dark); }
 /* Herkunftsvermerk und Dopplungshinweis */
 .origin-note{font-size:.68rem;line-height:1.2;color:var(--bs-secondary-color,#6c757d);margin-top:.2rem;white-space:normal}
 .duplicate-badge{background:#fff3cd;color:#664d03;border:1px solid #ffda6a;font-weight:600;white-space:normal;text-align:left;margin-top:.2rem}
+
+/* Projektliste: Rolloutobjekte kompakt neben dem Projekt */
+.project-list td{vertical-align:top}
+.ro-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(19rem,1fr));gap:.15rem 1.25rem}
+.ro-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .5rem;font-size:.85rem;line-height:1.35;padding:.15rem 0;border-bottom:1px dashed var(--bs-border-color,#dee2e6)}
+.ro-name{font-weight:600;text-decoration:none;color:inherit}
+.ro-name:hover{text-decoration:underline}
+.ro-meta{color:var(--bs-secondary-color,#6c757d);font-size:.78rem;white-space:nowrap}
+.ro-chips{display:inline-flex;gap:.2rem;margin-left:auto}
+.ro-chip{font-size:.7rem;font-weight:600;padding:.05rem .35rem;border-radius:.3rem;white-space:nowrap}
+.ro-chip-rv{background:#fde8e8;color:#9b1c1c}
+.ro-chip-fi{background:#e3ecfb;color:#1e429f}
+.ro-chip-dsv{background:#def3f7;color:#0e5a6b}
+.ro-more summary{font-size:.8rem;color:var(--bs-link-color,#0d6efd);cursor:pointer;margin-top:.2rem}
+@media (max-width: 767.98px){
+.project-list thead{display:none}
+.project-list tr,.project-list td{display:block;width:100%!important}
+.project-list td{border-bottom:0}
+.project-list tr{border-bottom:1px solid var(--bs-border-color,#dee2e6);padding:.25rem 0}
+.project-list td.text-end{text-align:left!important}
+.ro-list{grid-template-columns:1fr}
+}
