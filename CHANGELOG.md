@@ -1,5 +1,11 @@
 # Änderungsverlauf
 
+## 0.1.61
+
+- Anmeldung hält länger: abgemeldet wird erst nach 12 Stunden ohne Aktivität (bisher PHP-Vorgabe: 24 Minuten) und nicht mehr beim Schließen des Browsers. Jeder Seitenaufruf verlängert die Sitzung
+- Dauer einstellbar über `session_lifetime_hours` in `config.php` (mindestens 15 Minuten)
+- Sitzungen liegen jetzt im Ordner `data/sessions` der Anwendung, damit der Aufräumjob des Servers sie nicht vorzeitig löscht (der PHP-Benutzer braucht dort Schreibrechte – wie schon für die Datenbank in `data/`)
+
 ## 0.1.60
 
 - Neu unter „Import / Export“: „Projekttabelle als PowerPoint“ – alle Projekte mit ihren Rolloutobjekten, Rollout-Klasse, Rollout-Beginn und Rollout-Ende im Format der Tabelle „Rolloutschwerpunkte“ (Vorlage `resources/powerpoint/rolloutschwerpunkte-tabelle-vorlage.pptx`): gleiche Folie, Spalten, Schriftgrößen, Farben und Rahmen; ohne Zuordnung zu strategischen Themenfeldern

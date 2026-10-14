@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.60
+# Rollout-Schwerpunkte 0.1.61
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -198,6 +198,13 @@ und -Ende im Format der Vorlage
 Layout „Text-/Bild-Folie #9“). Themenfeld-Spalte, Themenfeld-Bilder und die
 Subline der Vorlage entfallen; Titel und Fußzeile sind vor dem Export änderbar.
 
+## Anmeldung
+
+Angemeldet bleibt man, bis 12 Stunden lang nichts aufgerufen wurde; ein Neustart
+des Browsers meldet nicht ab. Die Dauer lässt sich in `config.php` mit
+`'session_lifetime_hours' => 12` ändern. Sitzungen werden in `data/sessions`
+gespeichert (wird automatisch angelegt).
+
 ## Wer hat zuletzt geändert?
 
 Es gilt: Wer zuletzt etwas gesagt hat, überschreibt die Angabe des anderen –
@@ -253,7 +260,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.60**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.61**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.
