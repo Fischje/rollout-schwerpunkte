@@ -25,15 +25,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'logout') { session_unset(); session_destroy(); redirect('?page=login'); }
         require_login();
 
+        if ($action === 'save_strategic_fields') {
+            $update=$db->prepare('UPDATE strategic_fields SET name=? WHERE id=?');
+            foreach(strategic_fields($db) as $fieldId=>$oldName)$update->execute([mb_substr(trim((string)($_POST['strategic_field'][$fieldId]??$oldName)),0,120),$fieldId]);
+            flash('success','Strategische Themenfelder gespeichert.'); redirect('?#themenfelder');
+        }
         if ($action === 'save_project') {
             $id = (int)($_POST['id'] ?? 0); $name = post_string('name');
             if ($name === '') throw new RuntimeException('Der Projektname darf nicht leer sein.');
+            $fieldId = (int)($_POST['strategic_field_id'] ?? 0); $fieldId = isset(strategic_fields($db)[$fieldId]) ? $fieldId : null;
             if ($id) {
-                $stmt=$db->prepare('UPDATE projects SET name=?,project_lead=?,rollout_lead=?,description=?,updated_at=CURRENT_TIMESTAMP WHERE id=?');
-                $stmt->execute([$name,post_string('project_lead'),post_string('rollout_lead'),post_string('description'),$id]);
+                $stmt=$db->prepare('UPDATE projects SET name=?,project_lead=?,rollout_lead=?,description=?,strategic_field_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?');
+                $stmt->execute([$name,post_string('project_lead'),post_string('rollout_lead'),post_string('description'),$fieldId,$id]);
             } else {
-                $stmt=$db->prepare('INSERT INTO projects(name,project_lead,rollout_lead,description) VALUES(?,?,?,?)');
-                $stmt->execute([$name,post_string('project_lead'),post_string('rollout_lead'),post_string('description')]); $id=(int)$db->lastInsertId();
+                $stmt=$db->prepare('INSERT INTO projects(name,project_lead,rollout_lead,description,strategic_field_id) VALUES(?,?,?,?,?)');
+                $stmt->execute([$name,post_string('project_lead'),post_string('rollout_lead'),post_string('description'),$fieldId]); $id=(int)$db->lastInsertId();
             }
             flash('success','Projekt gespeichert.'); redirect('?page=project&id='.$id);
         }
@@ -319,17 +325,18 @@ function render_dashboard(PDO $db): void {
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4"><div><h1 class="page-title h2 mb-1">Schwerpunkt-Projekte</h1><p class="text-secondary mb-0">Projekte suchen und zugehörige Rolloutobjekte verwalten.</p></div><a class="btn btn-primary" href="?page=project&id=0">+ Projekt anlegen</a></div>
 <div class="row g-3 mb-4"><?php foreach($stats as $label=>$value): ?><div class="col-md-4"><div class="card p-3"><span class="text-secondary small"><?=e($label)?></span><span class="stat-value"><?=$value?></span></div></div><?php endforeach; ?></div>
 <form class="card p-3 mb-3" method="get"><div class="input-group"><input class="form-control" name="q" value="<?=e($q)?>" placeholder="Projekt, Rolloutobjekt, Projektleitung oder TPL Rollout suchen …"><button class="btn btn-dark">Suchen</button><?php if($q!==''): ?><a class="btn btn-outline-secondary" href="?">Zurücksetzen</a><?php endif; ?></div></form>
-<?php $objectsByProject=[];foreach(enrich_rollout_objects($db,$db->query('SELECT * FROM rollout_objects ORDER BY start_date,name')->fetchAll()) as $o)$objectsByProject[(int)$o['project_id']][]=$o;$dsvLabels=array_column(provider_class_levels($db,'DSV',true),'class_label','class_code');$shortDate=static fn(?string $date):string=>$date?date('d.m.y',strtotime(date_to_iso($date)??$date)):'–';
+<?php $fields=strategic_fields($db);$objectsByProject=[];foreach(enrich_rollout_objects($db,$db->query('SELECT * FROM rollout_objects ORDER BY start_date,name')->fetchAll()) as $o)$objectsByProject[(int)$o['project_id']][]=$o;$dsvLabels=array_column(provider_class_levels($db,'DSV',true),'class_label','class_code');$shortDate=static fn(?string $date):string=>$date?date('d.m.y',strtotime(date_to_iso($date)??$date)):'–';
 $objectLine=static function(array $o,int $projectId)use($dsvLabels,$shortDate):string{$chips='';if((string)$o['functional_class']!=='')$chips.='<span class="ro-chip ro-chip-rv" title="Rolloutklasse Bankfachlich">'.e((string)$o['functional_class']).'</span>';if((string)($o['fi_class_code']??'')!=='')$chips.='<span class="ro-chip ro-chip-fi" title="Rolloutklasse FI">FI '.e((string)$o['fi_class_code']).'</span>';if((string)($o['dsv_class_code']??'')!=='')$chips.='<span class="ro-chip ro-chip-dsv" title="Rolloutklasse DSV">DSV '.e((string)($dsvLabels[$o['dsv_class_code']]??$o['dsv_class_code'])).'</span>';return '<li class="ro-line"><a class="ro-name" href="?page=matrix&project_id='.$projectId.'&object_id='.(int)$o['id'].'" title="Matrix für dieses Rolloutobjekt öffnen">'.e((string)$o['name']).'</a><span class="ro-meta">'.e($shortDate($o['start_date']).' – '.$shortDate($o['end_date'])).'</span><span class="ro-chips">'.$chips.'</span></li>';};?>
-<div class="card table-responsive"><table class="table align-middle mb-0 project-list"><thead><tr><th style="width:28%">Projekt</th><th>Rolloutobjekte <span class="fw-normal text-secondary small">· Zeitraum · Klassen Bankfachlich / FI / DSV</span></th><th class="text-end" style="width:1%"></th></tr></thead><tbody><?php foreach($projects as $p):$objects=$objectsByProject[(int)$p['id']]??[];$visible=array_slice($objects,0,6);$more=array_slice($objects,6);?><tr><td><a class="fw-semibold text-decoration-none" href="?page=project&id=<?=$p['id']?>"><?=e($p['name'])?></a><div class="small text-secondary mt-1"><?=$p['project_lead']!==''?'PL: '.e($p['project_lead']):''?><?=$p['project_lead']!==''&&$p['rollout_lead']!==''?' · ':''?><?=$p['rollout_lead']!==''?'TPL: '.e($p['rollout_lead']):''?></div><div class="small text-secondary"><?=e(format_date($p['first_start']))?> – <?=e(format_date($p['last_end']))?> · <?=count($objects)?> <?=count($objects)===1?'Rolloutobjekt':'Rolloutobjekte'?></div></td>
+<div class="card table-responsive"><table class="table align-middle mb-0 project-list"><thead><tr><th style="width:28%">Projekt</th><th>Rolloutobjekte <span class="fw-normal text-secondary small">· Zeitraum · Klassen Bankfachlich / FI / DSV</span></th><th class="text-end" style="width:1%"></th></tr></thead><tbody><?php foreach($projects as $p):$objects=$objectsByProject[(int)$p['id']]??[];$visible=array_slice($objects,0,6);$more=array_slice($objects,6);?><tr><td><a class="fw-semibold text-decoration-none" href="?page=project&id=<?=$p['id']?>"><?=e($p['name'])?></a><?php if(!empty($p['strategic_field_id'])):?><div><span class="badge text-bg-light border mt-1 field-badge" title="Strategisches Themenfeld"><?=e(strategic_field_label((int)$p['strategic_field_id'],$fields))?></span></div><?php endif;?><div class="small text-secondary mt-1"><?=$p['project_lead']!==''?'PL: '.e($p['project_lead']):''?><?=$p['project_lead']!==''&&$p['rollout_lead']!==''?' · ':''?><?=$p['rollout_lead']!==''?'TPL: '.e($p['rollout_lead']):''?></div><div class="small text-secondary"><?=e(format_date($p['first_start']))?> – <?=e(format_date($p['last_end']))?> · <?=count($objects)?> <?=count($objects)===1?'Rolloutobjekt':'Rolloutobjekte'?></div></td>
 <td><?php if(!$objects):?><span class="small text-secondary">Noch keine Rolloutobjekte</span> <a class="small" href="?page=object&project_id=<?=$p['id']?>">anlegen</a><?php else:?><ul class="ro-list"><?php foreach($visible as $o)echo $objectLine($o,(int)$p['id']);?></ul><?php if($more):?><details class="ro-more"><summary>+ <?=count($more)?> weitere</summary><ul class="ro-list"><?php foreach($more as $o)echo $objectLine($o,(int)$p['id']);?></ul></details><?php endif;endif;?></td>
-<td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-dark" href="?page=project&id=<?=$p['id']?>">Öffnen</a> <a class="btn btn-sm btn-outline-secondary" href="?page=matrix&project_id=<?=$p['id']?>">Matrix</a></td></tr><?php endforeach; ?><?php if(!$projects): ?><tr><td colspan="3" class="text-center text-secondary py-5">Noch keine passenden Projekte vorhanden.</td></tr><?php endif; ?></tbody></table></div><?php }
+<td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-dark" href="?page=project&id=<?=$p['id']?>">Öffnen</a> <a class="btn btn-sm btn-outline-secondary" href="?page=matrix&project_id=<?=$p['id']?>">Matrix</a></td></tr><?php endforeach; ?><?php if(!$projects): ?><tr><td colspan="3" class="text-center text-secondary py-5">Noch keine passenden Projekte vorhanden.</td></tr><?php endif; ?></tbody></table></div>
+<details class="card p-3 mt-4" id="themenfelder"><summary class="fw-semibold">Strategische Themenfelder bearbeiten</summary><p class="small text-secondary mt-2">Jedes Projekt kann einem der neun Themenfelder zugeordnet werden (im Projekt unter „Strategisches Themenfeld“). Die PowerPoint-Projekttabelle ist danach gegliedert.</p><form method="post" class="row g-2"><?=csrf_field()?><input type="hidden" name="action" value="save_strategic_fields"><?php foreach($fields as $fieldId=>$fieldName):?><div class="col-md-6 col-xl-4"><div class="input-group input-group-sm"><span class="input-group-text"><?=$fieldId?>.</span><input class="form-control" name="strategic_field[<?=$fieldId?>]" value="<?=e($fieldName)?>" placeholder="Themenfeld <?=$fieldId?>" maxlength="120"></div></div><?php endforeach;?><div class="col-12"><button class="btn btn-sm btn-primary">Themenfelder speichern</button></div></form></details><?php }
 
 function render_project(PDO $db,int $id): void {
-    $project=['id'=>0,'name'=>'','project_lead'=>'','rollout_lead'=>'','description'=>'']; $objects=[];
+    $project=['id'=>0,'name'=>'','project_lead'=>'','rollout_lead'=>'','description'=>'','strategic_field_id'=>null]; $objects=[]; $fields=strategic_fields($db);
     if($id){$stmt=$db->prepare('SELECT * FROM projects WHERE id=?');$stmt->execute([$id]);$project=$stmt->fetch()?:$project;$stmt=$db->prepare('SELECT * FROM rollout_objects WHERE project_id=? ORDER BY start_date,name');$stmt->execute([$id]);$objects=enrich_rollout_objects($db,$stmt->fetchAll());} ?>
 <div class="d-flex justify-content-between align-items-center mb-4"><div><a class="small text-secondary text-decoration-none" href="?">← Projektübersicht</a><h1 class="page-title h2 mt-2 mb-0"><?=$id?e($project['name']):'Neues Projekt'?></h1></div><?php if($id): ?><div class="d-flex gap-2"><a class="btn btn-outline-dark" href="?page=matrix&project_id=<?=$id?>">Unterstützungsmatrix</a><a class="btn btn-primary" href="?page=object&project_id=<?=$id?>">+ Rolloutobjekt</a></div><?php endif; ?></div>
-<div class="row g-4"><div class="col-lg-4"><form method="post" class="card p-4 vstack gap-3"><?=csrf_field()?><input type="hidden" name="action" value="save_project"><input type="hidden" name="id" value="<?=$project['id']?>"><div><label class="form-label">Projektname</label><input class="form-control" name="name" value="<?=e($project['name'])?>" required></div><div><label class="form-label">Projektleitung</label><input class="form-control" name="project_lead" value="<?=e($project['project_lead'])?>"></div><div><label class="form-label">Teilprojektleitung Rollout</label><input class="form-control" name="rollout_lead" value="<?=e($project['rollout_lead'])?>"></div><div><label class="form-label">Beschreibung</label><textarea class="form-control" rows="4" name="description"><?=e($project['description'])?></textarea></div><button class="btn btn-primary">Projekt speichern</button></form><?php if($id): ?><form method="post" class="mt-3"><?=csrf_field()?><input type="hidden" name="action" value="delete_project"><input type="hidden" name="id" value="<?=$id?>"><button class="btn btn-link text-danger px-0" data-confirm="Projekt einschließlich aller Rolloutobjekte wirklich löschen?">Projekt löschen</button></form><?php endif; ?></div>
+<div class="row g-4"><div class="col-lg-4"><form method="post" class="card p-4 vstack gap-3"><?=csrf_field()?><input type="hidden" name="action" value="save_project"><input type="hidden" name="id" value="<?=$project['id']?>"><div><label class="form-label">Projektname</label><input class="form-control" name="name" value="<?=e($project['name'])?>" required></div><div><label class="form-label">Strategisches Themenfeld</label><select class="form-select" name="strategic_field_id"><option value="">– noch nicht zugeordnet –</option><?php foreach($fields as $fieldId=>$fieldName):?><option value="<?=$fieldId?>" <?=(int)($project['strategic_field_id']??0)===(int)$fieldId?'selected':''?>><?=e(strategic_field_label((int)$fieldId,$fields))?></option><?php endforeach;?></select><div class="form-text">Ordnet das Projekt in der PowerPoint-Projekttabelle ein. Namen der Themenfelder pflegen Sie unten auf der Seite „Projekte“.</div></div><div><label class="form-label">Projektleitung</label><input class="form-control" name="project_lead" value="<?=e($project['project_lead'])?>"></div><div><label class="form-label">Teilprojektleitung Rollout</label><input class="form-control" name="rollout_lead" value="<?=e($project['rollout_lead'])?>"></div><div><label class="form-label">Beschreibung</label><textarea class="form-control" rows="4" name="description"><?=e($project['description'])?></textarea></div><button class="btn btn-primary">Projekt speichern</button></form><?php if($id): ?><form method="post" class="mt-3"><?=csrf_field()?><input type="hidden" name="action" value="delete_project"><input type="hidden" name="id" value="<?=$id?>"><button class="btn btn-link text-danger px-0" data-confirm="Projekt einschließlich aller Rolloutobjekte wirklich löschen?">Projekt löschen</button></form><?php endif; ?></div>
 <div class="col-lg-8"><?php if(!$id): ?><div class="alert alert-info">Speichern Sie zuerst das Projekt. Anschließend können Rolloutobjekte angelegt werden.</div><?php else: ?><div class="card table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Rolloutobjekt</th><th>Klassen</th><th>Start</th><th>Ende</th><th></th></tr></thead><tbody><?php foreach($objects as $o): ?><tr><td class="fw-semibold"><?=e($o['name'])?></td><td><?=e(class_label($o))?></td><td><?=e(format_date($o['start_date']))?></td><td><?=e(format_date($o['end_date']))?></td><td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="?page=object&id=<?=$o['id']?>&project_id=<?=$id?>">Bearbeiten</a> <a class="btn btn-sm btn-outline-dark" href="?page=matrix&project_id=<?=$id?>&object_id=<?=$o['id']?>">Matrix</a></td></tr><?php endforeach; ?><?php if(!$objects): ?><tr><td colspan="5" class="text-center text-secondary py-5">Noch keine Rolloutobjekte vorhanden.</td></tr><?php endif; ?></tbody></table></div><?php endif; ?></div></div><?php }
 
 function render_object_form(PDO $db,int $projectId,int $id): void {
@@ -1011,93 +1018,95 @@ function german_long_date(string $date): string {
 /** Tabellenzelle im Stil der Vorlage „Rolloutschwerpunkte“ (Rahmen, Füllung, Schriftgröße wie im Original). */
 function rollout_table_cell(string $text,array $opt=[]): string {
     $line=static fn(string $side,string $color):string=>'<a:'.$side.' w="12700" cap="flat" cmpd="sng" algn="ctr"><a:solidFill>'.$color.'</a:solidFill><a:prstDash val="solid"/><a:round/><a:headEnd type="none" w="med" len="med"/><a:tailEnd type="none" w="med" len="med"/></a:'.$side.'>';
-    $header=!empty($opt['header']);$border=$header?'<a:schemeClr val="bg1"><a:lumMod val="85000"/></a:schemeClr>':'<a:schemeClr val="bg2"/>';
-    $fill=$header?'<a:solidFill><a:schemeClr val="tx1"><a:lumMod val="75000"/><a:lumOff val="25000"/></a:schemeClr></a:solidFill>':'<a:solidFill><a:schemeClr val="bg1"><a:lumMod val="95000"/></a:schemeClr></a:solidFill>';
-    $size=(int)($opt['size']??($header?800:900));$align=$opt['align']??'l';$color=$header?'<a:solidFill><a:schemeClr val="bg1"/></a:solidFill>':'<a:solidFill><a:schemeClr val="tx1"/></a:solidFill>';
+    $header=!empty($opt['header']);$dark=!empty($opt['dark']);$border=$header||$dark?'<a:schemeClr val="bg1"><a:lumMod val="85000"/></a:schemeClr>':'<a:schemeClr val="bg2"/>';
+    $fill=$dark?'<a:solidFill><a:srgbClr val="3E3E3D"/></a:solidFill>':($header?'<a:solidFill><a:schemeClr val="tx1"><a:lumMod val="75000"/><a:lumOff val="25000"/></a:schemeClr></a:solidFill>':'<a:solidFill><a:schemeClr val="bg1"><a:lumMod val="95000"/></a:schemeClr></a:solidFill>');
+    $size=(int)($opt['size']??($header||$dark?800:900));$align=$opt['align']??($dark?'ctr':'l');$color=$header||$dark?'<a:solidFill><a:schemeClr val="bg1"/></a:solidFill>':'<a:solidFill><a:schemeClr val="tx1"/></a:solidFill>';$header=$header&&!$dark;
     $runs='';foreach(explode("\n",$text) as $index=>$part){$runs.=($index?'</a:p><a:p><a:pPr marL="0" indent="0" algn="'.$align.'"><a:spcBef><a:spcPts val="0"/></a:spcBef><a:buNone/></a:pPr>':'').($part===''?'':'<a:r><a:rPr lang="de-DE" sz="'.$size.'"'.($header?' b="1"':'').' dirty="0">'.$color.'<a:latin typeface="+mn-lt"/></a:rPr><a:t>'.Pptx::esc($part).'</a:t></a:r>');}
     $attributes=(isset($opt['rowSpan'])&&$opt['rowSpan']>1?' rowSpan="'.(int)$opt['rowSpan'].'"':'').(!empty($opt['vMerge'])?' vMerge="1"':'');
     $margins=$opt['margins']??'';
     return '<a:tc'.$attributes.'><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:pPr marL="0" indent="0" algn="'.$align.'"><a:lnSpc><a:spcPct val="100000"/></a:lnSpc><a:spcBef><a:spcPts val="0"/></a:spcBef><a:spcAft><a:spcPts val="0"/></a:spcAft><a:buNone/></a:pPr>'.$runs.'<a:endParaRPr lang="de-DE" sz="'.$size.'" dirty="0"/></a:p></a:txBody>'
-        .'<a:tcPr'.$margins.' anchor="ctr">'.$line('lnL',$border).$line('lnR',$border).$line('lnT',$border).$line('lnB',$border).$fill.'</a:tcPr></a:tc>';
+        .'<a:tcPr'.$margins.($dark?' vert="vert270"':'').' anchor="ctr">'.$line('lnL',$border).$line('lnR',$border).$line('lnT',$border).$line('lnB',$border).$fill.'</a:tcPr></a:tc>';
 }
 
 /**
  * Projekttabelle (Projekte × Rolloutobjekte) als PowerPoint im Format der Vorlage „Rolloutschwerpunkte“:
- * Musterfolie der Vorlage ohne Themenfelder, Tabelle mit Projektname, Rolloutobjekte, Rollout-Klasse, -Beginn, -Ende.
+ * Musterfolie der Vorlage mit Themenfeld-Spalte, Subline und Themenfeld-Bildern; sortiert nach strategischem Themenfeld, dann Projektname.
  */
 function download_project_table_pptx(PDO $db,string $title,string $footer): never {
     $title=$title!==''?$title:'Rolloutschwerpunkte '.((int)date('Y')+1);$footer=$footer!==''?$footer:'Rolloutschwerpunkte | Stand '.german_long_date(date('Y-m-d'));
     $deck=new Pptx(dirname(__DIR__).'/resources/powerpoint/rolloutschwerpunkte-tabelle-vorlage.pptx');
-    $prototype=$deck->file('ppt/slides/slide2.xml');if($prototype===null)throw new RuntimeException('In der Vorlage fehlt die Musterfolie.');
-    // Spalten wie in der Vorlage; die Themenfeld-Spalte entfällt, ihre Breite geht an „Projektname“
-    // Tabelle endet spätestens 2 cm über dem unteren Folienrand (Folie 19,05 cm hoch)
-    $columns=[1939820+414091,3811909,895739,1688841,2024743];$tableX=850800;$tableY=1295935;$bottom=6858000-2*Pptx::EMU_CM;$headerHeight=235806;
-    // Höhen eher großzügig schätzen: Zellen „Projektname“ und „Rollout-Klasse“ haben wie in der Vorlage Innenabstand oben/unten (je 0,127 cm)
+    $prototype=$deck->file('ppt/slides/slide2.xml');$prototypeRels=$deck->file('ppt/slides/_rels/slide2.xml.rels');if($prototype===null||$prototypeRels===null)throw new RuntimeException('In der Vorlage fehlt die Musterfolie.');
+    // Spalten wie in der Vorlage: Themenfeld, Projektname, Rolloutobjekte, Klasse, Beginn, Ende. Tabelle endet spätestens 2 cm über dem unteren Rand
+    $columns=[414091,1939820,3811909,895739,1688841,2024743];$tableX=850800;$tableY=1295935;$bottom=6858000-2*Pptx::EMU_CM;$headerHeight=235806;
+    // Höhen eher großzügig schätzen: Zellen mit Innenabstand oben/unten (je 0,127 cm) wie in der Vorlage
     $lineHeight=137160;$cellPadding=91440;$minRow=8*12*1270+$cellPadding;
     $linesFor=static function(string $text,int $width,float $pt):int{$chars=max(8,(int)floor(($width-130000)/($pt*12700*0.55)));$lines=0;foreach(explode("\n",$text) as $part)$lines+=max(1,(int)ceil(mb_strlen($part)/$chars));return $lines;};
-    $projects=$db->query('SELECT * FROM projects ORDER BY name COLLATE NOCASE')->fetchAll();
+    // Senkrechter Themenfeld-Text: so hoch, dass er in den verfügbaren Zeilen der schmalen Spalte Platz hat
+    $fieldLines=max(1,(int)floor(($columns[0]-91440)/(8*12*1270)));$fieldMin=static fn(string $label):int=>(int)ceil(mb_strlen($label)*8*12700*0.5/$fieldLines)+$cellPadding;
+    $fields=strategic_fields($db);
+    $projects=$db->query('SELECT * FROM projects ORDER BY CASE WHEN strategic_field_id IS NULL THEN 99 ELSE strategic_field_id END,name COLLATE NOCASE')->fetchAll();
     $objectsByProject=[];foreach($db->query('SELECT * FROM rollout_objects ORDER BY start_date,name COLLATE NOCASE')->fetchAll() as $o)$objectsByProject[(int)$o['project_id']][]=$o;
     if(!$projects)throw new RuntimeException('Es sind noch keine Projekte vorhanden.');
-    // Gruppen je Projekt mit geschätzter Zeilenhöhe
-    $groups=[];
+    $projectHeight=static fn(string $name,array $rows):int=>max(array_sum(array_column($rows,'height')),$linesFor($name,$columns[1],9)*$lineHeight+$cellPadding);
+    // Blöcke je Projekt; nur ein Projekt, das allein nicht auf eine Folie passt, wird geteilt („Fortsetzung“)
+    $available=$bottom-$tableY-$headerHeight;$units=[];
     foreach($projects as $project){
+        $field=!empty($project['strategic_field_id'])?strategic_field_label((int)$project['strategic_field_id'],$fields):'Ohne Themenfeld';
         $rows=[];foreach($objectsByProject[(int)$project['id']]??[] as $o)$rows[]=['object'=>(string)$o['name'],'class'=>(string)($o['functional_class']?:'-'),'start'=>short_month_date($o['start_date']),'end'=>short_month_date($o['end_date'])];
         if(!$rows)$rows[]=['object'=>'-','class'=>'-','start'=>'-','end'=>'-'];
-        foreach($rows as &$row)$row['height']=max($minRow,$linesFor($row['object'],$columns[1],9)*$lineHeight+45720);unset($row);
-        $groups[]=['name'=>(string)$project['name'],'rows'=>$rows];
-    }
-    $available=$bottom-$tableY-$headerHeight;
-    $projectHeight=static fn(string $name,array $rows):int=>max(array_sum(array_column($rows,'height')),$linesFor($name,$columns[0],9)*$lineHeight+$cellPadding);
-    // Blöcke bilden: je Projekt einer; nur ein Projekt, das allein nicht auf eine Folie passt, wird geteilt („Fortsetzung“)
-    $units=[];
-    foreach($groups as $group){
-        $rows=$group['rows'];$name=$group['name'];
+        foreach($rows as &$row)$row['height']=max($minRow,$linesFor($row['object'],$columns[2],9)*$lineHeight+45720);unset($row);
+        $name=(string)$project['name'];
         while($rows){
-            if($projectHeight($name,$rows)<=$available){$units[]=['name'=>$name,'rows'=>$rows,'height'=>$projectHeight($name,$rows)];break;}
+            if($projectHeight($name,$rows)<=$available){$units[]=['field'=>$field,'name'=>$name,'rows'=>$rows,'height'=>$projectHeight($name,$rows)];break;}
             $take=[];$sum=0;foreach($rows as $row){if($take&&$sum+$row['height']>$available)break;$take[]=$row;$sum+=$row['height'];}
-            $units[]=['name'=>$name,'rows'=>$take,'height'=>$projectHeight($name,$take)];$rows=array_slice($rows,count($take));$name=$group['name'].' (Fortsetzung)';
+            $units[]=['field'=>$field,'name'=>$name,'rows'=>$take,'height'=>$projectHeight($name,$take)];$rows=array_slice($rows,count($take));$name=(string)$project['name'].' (Fortsetzung)';
         }
     }
+    // Höhe einer Folie mit den Blöcken j..i-1: je Themenfeld mindestens die Höhe des senkrechten Textes
+    $count=count($units);$loads=[];
+    $load=static function(int $from,int $to)use(&$loads,$units,$fieldMin):int{$key=$from.':'.$to;if(isset($loads[$key]))return $loads[$key];$total=0;$field=null;$sum=0;for($k=$from;$k<$to;$k++){if($units[$k]['field']!==$field){if($field!==null)$total+=max($sum,$fieldMin($field));$field=$units[$k]['field'];$sum=0;}$sum+=$units[$k]['height'];}if($field!==null)$total+=max($sum,$fieldMin($field));return $loads[$key]=$total;};
     // Mindestzahl der Folien (der Reihe nach auffüllen) …
-    $pageCount=0;$used=$available+1;foreach($units as $unit){if($used+$unit['height']>$available){$pageCount++;$used=0;}$used+=$unit['height'];}
-    // … und dann gleichmäßig verteilen: Reihenfolge bleibt, alle Folien möglichst gleich voll (kleinste Summe der quadrierten Füllhöhen)
-    $count=count($units);$prefix=[0];foreach($units as $unit)$prefix[]=end($prefix)+$unit['height'];$scale=1/max(1,$available);
-    $best=array_fill(0,$pageCount+1,array_fill(0,$count+1,INF));$cut=array_fill(0,$pageCount+1,array_fill(0,$count+1,0));$best[0][0]=0.0;
+    $pageCount=0;$start=0;for($i=1;$i<=$count;$i++){if($load($start,$i)>$available&&$i-1>$start){$pageCount++;$start=$i-1;}}$pageCount++;
+    // … und dann gleichmäßig verteilen: Reihenfolge bleibt, alle Folien möglichst gleich voll
+    $best=array_fill(0,$pageCount+1,array_fill(0,$count+1,INF));$cut=array_fill(0,$pageCount+1,array_fill(0,$count+1,0));$best[0][0]=0.0;$scale=1/max(1,$available);
     for($p=1;$p<=$pageCount;$p++)for($i=1;$i<=$count;$i++)for($j=$p-1;$j<$i;$j++){
-        if($best[$p-1][$j]===INF)continue;$load=$prefix[$i]-$prefix[$j];if($load>$available)continue;
-        $value=$best[$p-1][$j]+($load*$scale)**2;if($value<$best[$p][$i]){$best[$p][$i]=$value;$cut[$p][$i]=$j;}
+        if($best[$p-1][$j]===INF)continue;$pageLoad=$load($j,$i);if($pageLoad>$available&&$i-$j>1)continue;
+        $value=$best[$p-1][$j]+($pageLoad*$scale)**2;if($value<$best[$p][$i]){$best[$p][$i]=$value;$cut[$p][$i]=$j;}
     }
     $pages=[];
     if($best[$pageCount][$count]===INF){$pages[]=$units;}
-    else{$end=$count;for($p=$pageCount;$p>=1;$p--){$start=$cut[$p][$end];array_unshift($pages,array_slice($units,$start,$end-$start));$end=$start;}}
-    $pages=array_map(static fn(array $page):array=>array_map(static fn(array $unit):array=>['name'=>$unit['name'],'rows'=>$unit['rows']],$page),$pages);
-    $headerRow='<a:tr h="'.$headerHeight.'">'.rollout_table_cell('Projektname',['header'=>true]).rollout_table_cell('Rolloutobjekte',['header'=>true]).rollout_table_cell('Rollout-Klasse',['header'=>true,'align'=>'ctr','margins'=>' marL="0" marR="0" marT="0" marB="0"']).rollout_table_cell('Rollout-Beginn',['header'=>true,'align'=>'ctr','margins'=>' marL="0" marR="0" marT="0" marB="0"']).rollout_table_cell('Rollout-Ende',['header'=>true,'align'=>'ctr','margins'=>' marL="0" marR="0" marT="0" marB="0"']).'</a:tr>';
+    else{$end=$count;for($p=$pageCount;$p>=1;$p--){$from=$cut[$p][$end];array_unshift($pages,array_slice($units,$from,$end-$from));$end=$from;}}
+    $plain=' marL="0" marR="0" marT="0" marB="0"';
+    $headerRow='<a:tr h="'.$headerHeight.'">'.rollout_table_cell('',['dark'=>true,'header'=>true]).rollout_table_cell('Projektname',['header'=>true]).rollout_table_cell('Rolloutobjekte',['header'=>true]).rollout_table_cell('Rollout-Klasse',['header'=>true,'align'=>'ctr','margins'=>$plain]).rollout_table_cell('Rollout-Beginn',['header'=>true,'align'=>'ctr','margins'=>$plain]).rollout_table_cell('Rollout-Ende',['header'=>true,'align'=>'ctr','margins'=>$plain]).'</a:tr>';
     $grid='';foreach($columns as $width)$grid.='<a:gridCol w="'.$width.'"/>';
-    $slides=[];$layoutRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n".'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout34.xml"/></Relationships>';
-    foreach($pages as $index=>$entries){
+    $slides=[];
+    foreach($pages as $entries){
+        // Zeilen der Folie mit Spannweiten für Themenfeld und Projekt
+        $lines=[];foreach($entries as $entry){$count=count($entry['rows']);$extra=max(0,$projectHeight($entry['name'],$entry['rows'])-array_sum(array_column($entry['rows'],'height')));foreach($entry['rows'] as $rowIndex=>$row)$lines[]=$row+['field'=>$entry['field'],'project'=>$entry['name'],'projectFirst'=>$rowIndex===0,'projectSpan'=>$count,'height'=>$row['height']+($rowIndex===$count-1?$extra:0)];}
+        // Themenfeld: zusammenhängende Zeilen gleichen Feldes zusammenfassen und auf die Mindesthöhe des senkrechten Textes bringen
+        for($k=0;$k<count($lines);){$end=$k;while($end+1<count($lines)&&$lines[$end+1]['field']===$lines[$k]['field'])$end++;$lines[$k]['fieldSpan']=$end-$k+1;$sum=0;for($m=$k;$m<=$end;$m++)$sum+=$lines[$m]['height'];$missing=$fieldMin($lines[$k]['field'])-$sum;if($missing>0)$lines[$end]['height']+=$missing;$k=$end+1;}
         $rowsXml='';$height=$headerHeight;
-        foreach($entries as $entry){
-            $count=count($entry['rows']);$extra=max(0,$projectHeight($entry['name'],$entry['rows'])-array_sum(array_column($entry['rows'],'height')));
-            foreach($entry['rows'] as $rowIndex=>$row){
-                $rowHeight=$row['height']+($rowIndex===$count-1?$extra:0);$height+=$rowHeight;
-                $rowsXml.='<a:tr h="'.$rowHeight.'">'.($rowIndex===0?rollout_table_cell($entry['name'],['rowSpan'=>$count]):rollout_table_cell('',['vMerge'=>true]))
-                    .rollout_table_cell($row['object'],['margins'=>' marL="36000" marR="0" marT="0" marB="0"'])
-                    .rollout_table_cell($row['class'],['size'=>800,'align'=>'ctr'])
-                    .rollout_table_cell($row['start'],['size'=>800,'align'=>'ctr','margins'=>' marL="0" marR="0" marT="0" marB="0"'])
-                    .rollout_table_cell($row['end'],['size'=>800,'align'=>'ctr','margins'=>' marL="0" marR="0" marT="0" marB="0"']).'</a:tr>';
-            }
+        foreach($lines as $line){
+            $height+=$line['height'];
+            $rowsXml.='<a:tr h="'.$line['height'].'">'.(isset($line['fieldSpan'])?rollout_table_cell($line['field'],['dark'=>true,'rowSpan'=>$line['fieldSpan']]):rollout_table_cell('',['dark'=>true,'vMerge'=>true]))
+                .($line['projectFirst']?rollout_table_cell($line['project'],['rowSpan'=>$line['projectSpan']]):rollout_table_cell('',['vMerge'=>true]))
+                .rollout_table_cell($line['object'],['margins'=>' marL="36000" marR="0" marT="0" marB="0"'])
+                .rollout_table_cell($line['class'],['size'=>800,'align'=>'ctr'])
+                .rollout_table_cell($line['start'],['size'=>800,'align'=>'ctr','margins'=>$plain])
+                .rollout_table_cell($line['end'],['size'=>800,'align'=>'ctr','margins'=>$plain]).'</a:tr>';
         }
         $table='<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="39" name="Tabelle Rolloutschwerpunkte"/><p:cNvGraphicFramePr><a:graphicFrameLocks noGrp="1"/></p:cNvGraphicFramePr><p:nvPr/></p:nvGraphicFramePr><p:xfrm><a:off x="'.$tableX.'" y="'.$tableY.'"/><a:ext cx="'.array_sum($columns).'" cy="'.$height.'"/></p:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table"><a:tbl><a:tblPr firstRow="1" bandRow="1"><a:tableStyleId>{5940675A-B579-460E-94D1-54222C63F5DA}</a:tableStyleId></a:tblPr><a:tblGrid>'.$grid.'</a:tblGrid>'.$headerRow.$rowsXml.'</a:tbl></a:graphicData></a:graphic></p:graphicFrame>';
-        // Musterfolie: Themenfeld-Bilder, Subline „nach strategischen Themenfeldern“, leerer Inhaltsplatzhalter und alte Tabelle entfernen
+        // Musterfolie: alte Tabelle und leeren Inhaltsplatzhalter entfernen; Titel, Subline, Themenfeld-Bilder und Fußzeile bleiben
         $dom=new DOMDocument();$dom->loadXML($prototype);$xpath=new DOMXPath($dom);$xpath->registerNamespace('p','http://schemas.openxmlformats.org/presentationml/2006/main');$xpath->registerNamespace('a','http://schemas.openxmlformats.org/drawingml/2006/main');
-        foreach(iterator_to_array($xpath->query('/p:sld/p:cSld/p:spTree/*[self::p:grpSp or self::p:graphicFrame or self::p:pic]')) as $node)$node->parentNode->removeChild($node);
-        foreach(iterator_to_array($xpath->query('/p:sld/p:cSld/p:spTree/p:sp[.//p:ph[@idx="19" or @idx="14"]]')) as $node)$node->parentNode->removeChild($node);
+        foreach(iterator_to_array($xpath->query('/p:sld/p:cSld/p:spTree/p:graphicFrame')) as $node)$node->parentNode->removeChild($node);
+        foreach(iterator_to_array($xpath->query('/p:sld/p:cSld/p:spTree/p:sp[.//p:ph[@idx="19"]]')) as $node)$node->parentNode->removeChild($node);
         $setText=static function(string $query,string $text)use($xpath):void{foreach($xpath->query($query) as $sp){$texts=$xpath->query('.//a:t',$sp);foreach($texts as $i=>$node)$node->nodeValue=$i===0?$text:'';}};
         $setText('/p:sld/p:cSld/p:spTree/p:sp[.//p:ph[@type="title"]]',$title);
+        $setText('/p:sld/p:cSld/p:spTree/p:sp[.//p:ph[@idx="14"]]','nach strategischen Themenfeldern');
         $setText('/p:sld/p:cSld/p:spTree/p:sp[.//p:ph[@type="ftr"]]',$footer);
-        $setText('/p:sld/p:cSld/p:spTree/p:sp[.//p:ph[@type="sldNum"]]',(string)($index+1));
-        $xml=$dom->saveXML();$xml=str_replace('</p:spTree>',$table.'</p:spTree>',$xml);
-        $slides[]=[$xml,$layoutRels];
+        $setText('/p:sld/p:cSld/p:spTree/p:sp[.//p:ph[@type="sldNum"]]',(string)(count($slides)+1));
+        $xml=str_replace('</p:spTree>',$table.'</p:spTree>',$dom->saveXML());
+        $slides[]=[$xml,$prototypeRels];
     }
     Pptx::download($deck->buildSlides($slides),safe_template_filename($title).'-'.date('d.m.Y').'.pptx');
 }

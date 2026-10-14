@@ -40,6 +40,7 @@ final class Database
             self::ensureDeliveryLevels($db);
             self::ensureServiceNamesPerCatalog($db);
             self::ensureOriginColumns($db);
+            self::ensureStrategicFields($db);
             return;
         }
 
@@ -68,6 +69,17 @@ final class Database
     }
 
     /** Seit 0.1.43: Flag „Immer enthalten“ an Leistungen; wird bei bestehenden Datenbanken einmalig ergänzt, das Schema bleibt Version 23. */
+    /** Neun strategische Themenfelder; jedes Projekt kann einem davon zugeordnet werden. */
+    private static function ensureStrategicFields(PDO $db): void
+    {
+        $db->exec('CREATE TABLE IF NOT EXISTS strategic_fields (id INTEGER PRIMARY KEY, name TEXT NOT NULL DEFAULT \'\')');
+        $defaults = [1 => 'Beratung, Produkte und Services im Multikanal (PK/FK)', 2 => 'Immobilien / Wohnen', 3 => 'Payment', 4 => 'Personal', 5 => '', 6 => 'Effizienz und Standardisierung', 7 => '', 8 => '', 9 => ''];
+        $insert = $db->prepare('INSERT OR IGNORE INTO strategic_fields(id,name) VALUES(?,?)');
+        foreach ($defaults as $id => $name) $insert->execute([$id, $name]);
+        $columns = array_column($db->query('PRAGMA table_info(projects)')->fetchAll(), 'name');
+        if (!in_array('strategic_field_id', $columns, true)) $db->exec('ALTER TABLE projects ADD COLUMN strategic_field_id INTEGER REFERENCES strategic_fields(id) ON DELETE SET NULL');
+    }
+
     /** Herkunftsvermerk: wer eine Angabe zuletzt inhaltlich geändert hat (Import, Rückmeldung, Projektmatrix). */
     private static function ensureOriginColumns(PDO $db): void
     {

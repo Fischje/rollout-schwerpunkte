@@ -634,3 +634,15 @@ function duplicate_badge(array $others): string {
     $text = 'Gleicher Name auch bei ' . implode(', ', array_unique($others));
     return '<span class="badge duplicate-badge" title="' . e($text . ' am selben Rolloutobjekt – erlaubt, bitte prüfen, ob beides gewollt ist.') . '">⚠ ' . e($text) . '</span>';
 }
+
+/** Die neun strategischen Themenfelder: [id => Name]. */
+function strategic_fields(PDO $db): array {
+    return array_column($db->query('SELECT id,name FROM strategic_fields ORDER BY id')->fetchAll(), 'name', 'id');
+}
+
+/** „1. Beratung …“; ohne gepflegten Namen „Themenfeld 5“. */
+function strategic_field_label(?int $id, array $fields): string {
+    if (!$id) return '';
+    $name = trim((string)($fields[$id] ?? ''));
+    return $id . '. ' . ($name !== '' ? $name : 'Themenfeld ' . $id);
+}

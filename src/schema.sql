@@ -8,12 +8,21 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS strategic_fields (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL DEFAULT ''
+);
+INSERT OR IGNORE INTO strategic_fields(id,name) VALUES
+    (1,'Beratung, Produkte und Services im Multikanal (PK/FK)'),(2,'Immobilien / Wohnen'),(3,'Payment'),(4,'Personal'),(5,''),
+    (6,'Effizienz und Standardisierung'),(7,''),(8,''),(9,'');
+
 CREATE TABLE IF NOT EXISTS projects (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
     project_lead TEXT NOT NULL DEFAULT '',
     rollout_lead TEXT NOT NULL DEFAULT '',
     description TEXT NOT NULL DEFAULT '',
+    strategic_field_id INTEGER REFERENCES strategic_fields(id) ON DELETE SET NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

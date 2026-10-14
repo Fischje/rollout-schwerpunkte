@@ -1,5 +1,12 @@
 # Änderungsverlauf
 
+## 0.1.63
+
+- Neu: Strategische Themenfelder. Jedes Projekt kann einem der neun Themenfelder zugeordnet werden (Projektformular „Strategisches Themenfeld“); die Projektliste zeigt das Themenfeld unter dem Projektnamen
+- Die neun Namen sind unten auf der Seite „Projekte“ unter „Strategische Themenfelder bearbeiten“ pflegbar; vorbelegt sind 1. Beratung, Produkte und Services im Multikanal (PK/FK), 2. Immobilien / Wohnen, 3. Payment, 4. Personal und 6. Effizienz und Standardisierung
+- Projekttabelle als PowerPoint wieder vollständig wie die Vorlage: dunkle Themenfeld-Spalte links (senkrechter Text, zusammengefasst über alle Projekte des Feldes), Zeile „nach strategischen Themenfeldern“ und die neun Themenfeld-Bilder. Sortierung zuerst nach Themenfeld, dann nach Projektname; Projekte ohne Themenfeld stehen am Ende („Ohne Themenfeld“)
+- Die gleichmäßige Verteilung auf die Folien berücksichtigt die Mindesthöhe des senkrechten Themenfeld-Textes; die Tabelle endet weiterhin spätestens 2 cm über dem unteren Rand
+
 ## 0.1.62
 
 - Projekttabelle als PowerPoint: Die Tabelle endet spätestens 2 cm über dem unteren Folienrand. Zeilenhöhen werden großzügiger berechnet, weil die Zellen „Projektname“ und „Rollout-Klasse“ wie in der Vorlage Innenabstand haben – bisher konnten die Tabellen in PowerPoint weiter nach unten wachsen als geplant
