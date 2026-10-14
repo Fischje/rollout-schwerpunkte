@@ -182,8 +182,33 @@ final class Pptx
             $newSlides[] = [$xml, $layoutRels];
         }
         $newSlides[] = [$closingXml, $closingRels];
+        return $this->package($files, $newSlides);
+    }
 
-        // Folien, Beziehungen, Folienliste und Inhaltstypen neu schreiben
+    /** Inhalt einer Datei der Vorlage (z. B. eine Musterfolie). */
+    public function file(string $name): ?string
+    {
+        return $this->files[$name] ?? null;
+    }
+
+    /**
+     * Erzeugt eine Präsentation nur aus den übergebenen Folien ([Folien-XML, Beziehungen-XML]);
+     * Master, Layouts, Design und Schriften stammen aus der Vorlage, deren Folien entfallen.
+     */
+    public function buildSlides(array $slides): string
+    {
+        $files = $this->files;
+        foreach (array_keys($files) as $name) {
+            if (preg_match('~^ppt/slides/(_rels/)?slide\d+\.xml(\.rels)?$~', $name)) unset($files[$name]);
+        }
+        return $this->package($files, array_values($slides));
+    }
+
+    /** Schreibt Folien, Beziehungen, Folienliste und Inhaltstypen und packt die Datei. */
+    private function package(array $files, array $newSlides): string
+    {
+        $presentation = $files['ppt/presentation.xml'];
+        $presRels = $files['ppt/_rels/presentation.xml.rels'];
         $presRels = preg_replace('~<Relationship [^>]*Type="' . preg_quote(self::SLIDE_TYPE, '~') . '"[^>]*/>~', '', $presRels);
         $sldIds = '';
         $relXml = '';
@@ -201,6 +226,26 @@ final class Pptx
         $files['ppt/presentation.xml'] = preg_replace('~<p:sldIdLst>.*?</p:sldIdLst>~s', '<p:sldIdLst>' . $sldIds . '</p:sldIdLst>', $presentation);
         $files['[Content_Types].xml'] = str_replace('</Types>', $overrides . '</Types>', $types);
         if (isset($files['docProps/app.xml'])) $files['docProps/app.xml'] = preg_replace('~<Slides>\d+</Slides>~', '<Slides>' . count($newSlides) . '</Slides>', $files['docProps/app.xml']);
+
+        // Medien, auf die nach dem Austausch der Folien keine Beziehung mehr zeigt, entfernen (sonst meldet PowerPoint die Datei als beschädigt)
+        $referenced = [];
+        foreach ($files as $name => $content) {
+            if (!str_ends_with($name, '.rels')) continue;
+            $base = dirname(dirname($name));
+            preg_match_all('~Target="([^"]+)"~', $content, $targets);
+            foreach ($targets[1] as $target) {
+                $path = str_starts_with($target, '/') ? ltrim($target, '/') : ($base === '.' ? '' : $base . '/') . $target;
+                $parts = [];
+                foreach (explode('/', $path) as $part) {
+                    if ($part === '..') array_pop($parts);
+                    elseif ($part !== '.' && $part !== '') $parts[] = $part;
+                }
+                $referenced[implode('/', $parts)] = true;
+            }
+        }
+        foreach (array_keys($files) as $name) {
+            if (str_starts_with($name, 'ppt/media/') && !isset($referenced[$name])) unset($files[$name]);
+        }
 
         $path = tempnam(sys_get_temp_dir(), 'pptx');
         $zip = new ZipArchive();

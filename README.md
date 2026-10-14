@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.59
+# Rollout-Schwerpunkte 0.1.60
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -191,6 +191,13 @@ folgen Fortsetzungsfolien. Wird die Vorlage ausgetauscht, müssen die Platzhalte
 „Projektname, Datum“ (Titelfolie) und „Titel der Präsentation | Name | Ort, Datum“
 (Schlussfolie) sowie das Layout „Text-Folie #1“ (`slideLayout18.xml`) erhalten bleiben.
 
+Unter „Import / Export“ erzeugt „Projekttabelle als PowerPoint“ die Tabelle
+aller Projekte mit Rolloutobjekten, Rollout-Klasse (bankfachlich), Rollout-Beginn
+und -Ende im Format der Vorlage
+`resources/powerpoint/rolloutschwerpunkte-tabelle-vorlage.pptx` (Musterfolie 2,
+Layout „Text-/Bild-Folie #9“). Themenfeld-Spalte, Themenfeld-Bilder und die
+Subline der Vorlage entfallen; Titel und Fußzeile sind vor dem Export änderbar.
+
 ## Wer hat zuletzt geändert?
 
 Es gilt: Wer zuletzt etwas gesagt hat, überschreibt die Angabe des anderen –
@@ -246,7 +253,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.59**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.60**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.

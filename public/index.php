@@ -239,6 +239,11 @@ if ($page === 'export') {
         redirect('?page=import');
     }
 }
+if ($page === 'project-table-pptx') {
+    require_login();
+    try { download_project_table_pptx($db,trim((string)($_GET['title']??'')),trim((string)($_GET['footer']??''))); }
+    catch (Throwable $error) { flash('danger','Die Projekttabelle konnte nicht erstellt werden: '.$error->getMessage()); redirect('?page=import'); }
+}
 if ($page === 'overview-pptx') {
     require_login();
     try { download_project_pptx($db,(int)($_GET['project_id']??0)); }
@@ -833,6 +838,8 @@ document.getElementById('toggle-detail-cols').addEventListener('change',e=>table
 <script>(()=>{const option=document.getElementById('replace-services-option');const update=()=>{option.hidden=document.querySelector('input[name="import_mode"]:checked')?.value!=='planning';if(option.hidden)option.querySelector('input').checked=false};document.querySelectorAll('input[name="import_mode"]').forEach(r=>r.addEventListener('change',update));update()})();</script>
 <div><label class="form-label">CSV- oder XLSX-Dateien</label><input type="file" class="form-control" name="files[]" accept=".csv,.xlsx" multiple required><div class="form-text">Mehrere Rückmeldedateien können gemeinsam ausgewählt werden. Vor dem Import folgt immer die bearbeitbare Prüfung.</div></div><button class="btn btn-primary align-self-start">Dateien prüfen</button></form></div>
 <div class="col-lg-5"><div class="card p-4 h-100"><h2 class="h5">Gesamtbild exportieren</h2><p class="text-secondary">Der Export enthält alle Rolloutleistungen, ihre Nutzung je Rolloutobjekt und die zusammengeführten Angaben aller Leistungserbringer.</p><div class="d-flex gap-2 mt-auto"><a class="btn btn-outline-dark" href="?page=export&format=csv">CSV exportieren</a><a class="btn btn-outline-dark" href="?page=export&format=xlsx">Excel exportieren</a></div></div></div></div>
+<div class="card p-4 mt-4"><h2 class="h5">Projekttabelle als PowerPoint</h2><p class="text-secondary">Alle Projekte mit ihren Rolloutobjekten, Rollout-Klasse, Beginn und Ende – im Format der Tabelle „Rolloutschwerpunkte“. Reicht eine Folie nicht, folgen weitere Folien mit gleichem Aufbau.</p>
+<form method="get" class="row g-3 align-items-end"><input type="hidden" name="page" value="project-table-pptx"><div class="col-md-5"><label class="form-label">Titel</label><input class="form-control" name="title" value="<?=e('Rolloutschwerpunkte '.((int)date('Y')+1))?>"></div><div class="col-md-5"><label class="form-label">Fußzeile</label><input class="form-control" name="footer" value="<?=e('Rolloutschwerpunkte | Stand '.german_long_date(date('Y-m-d')))?>"></div><div class="col-md-2"><button class="btn btn-primary w-100">PowerPoint erstellen</button></div></form></div>
 <div class="row g-4 mt-1">
 <div class="col-xl-4"><div class="card p-4 h-100"><span class="badge text-bg-dark align-self-start mb-2">Phase 1</span><h2 class="h5">Leistungsplanung durch TPL/PL</h2><p class="text-secondary">Für jedes Projekt entsteht eine eigene Excel-Datei. Bankfachliche Klasse und Leistungen sind immer enthalten. Die Angaben der Verbunddienstleister können bei Bedarf zugeschaltet werden. In dieser Phase gibt es keine Ja-/Nein-Abfrage.</p><form method="get" class="vstack gap-3"><input type="hidden" name="page" value="template"><label class="form-check border rounded p-3 ps-5"><input class="form-check-input" type="checkbox" name="include_provider_data" value="1"><strong>Verbunddienstleisterklassen und -leistungen mit exportieren</strong><span class="d-block small text-secondary">Nur aktivieren, wenn diese Angaben bereits gepflegt sind. Ohne Haken fehlen die betreffenden Spalten vollständig.</span></label><button class="btn btn-primary align-self-start" name="type" value="tpl-projects">Alle Projektdateien als ZIP</button><div><label class="form-label small text-secondary" for="tpl-project-id">Einzelnes Projekt</label><div class="input-group"><select class="form-select" id="tpl-project-id" name="project_id"><?php foreach($templateProjects as $project):?><option value="<?=$project['id']?>"><?=e($project['name'])?></option><?php endforeach;?></select><button class="btn btn-outline-secondary" name="type" value="tpl-project" <?=$templateProjects?'':'disabled'?>>Excel herunterladen</button></div></div></form><p class="small text-secondary mt-3 mb-0">Danach mit „TPL-/PL-Planung übernehmen“ importieren.</p></div></div>
 <div class="col-xl-4"><div class="card p-4 h-100"><span class="badge text-bg-dark align-self-start mb-2">Phase 2</span><h2 class="h5">Planung durch FI und DSV</h2><p class="text-secondary">FI und DSV erhalten getrennte Excel-Dateien. Für jedes Rolloutobjekt wird zuerst die FI- beziehungsweise DSV-Klasse gewählt; anschließend bietet das abhängige Dropdown kumulativ die passenden eigenen Katalogleistungen an. Der DSV kann freie Ergänzungen zusätzlich als neue zentrale Katalogleistung vorschlagen.</p><a class="btn btn-primary align-self-start mb-3" href="?page=template&type=phase-fi-dsv">FI und DSV als ZIP</a><details><summary class="small text-secondary">Einzelne Datei herunterladen</summary><div class="d-flex flex-wrap gap-2 mt-2"><?php foreach($centralProviders as $provider):?><a class="btn btn-sm btn-outline-secondary" href="?page=template&type=provider&provider_id=<?=$provider['id']?>"><?=e($provider['name'])?></a><?php endforeach;?></div></details><p class="small text-secondary mt-3 mb-0">Diese Rückläufe vor dem Erzeugen der RV-Dateien importieren.</p></div></div>
@@ -988,6 +995,97 @@ function download_project_pptx(PDO $db,int $projectId): never {
 
     $footer='Synchronisation Rollout | '.$name.' | '.$date;
     Pptx::download($deck->build($name.', '.$date,$footer),'Synchronisation-Rollout-'.safe_template_filename($name).'-'.$date.'.pptx');
+}
+
+/** Datum wie in der Rolloutschwerpunkte-Tabelle: „Aug 26“; leer wird „-“. */
+function short_month_date(?string $date): string {
+    if(!$date)return '-';$timestamp=strtotime(date_to_iso($date)??$date);if(!$timestamp)return (string)$date;
+    return ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][(int)date('n',$timestamp)-1].' '.date('y',$timestamp);
+}
+
+/** „14. Oktober 2026“. */
+function german_long_date(string $date): string {
+    $timestamp=strtotime($date)?:time();return date('j',$timestamp).'. '.['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'][(int)date('n',$timestamp)-1].' '.date('Y',$timestamp);
+}
+
+/** Tabellenzelle im Stil der Vorlage „Rolloutschwerpunkte“ (Rahmen, Füllung, Schriftgröße wie im Original). */
+function rollout_table_cell(string $text,array $opt=[]): string {
+    $line=static fn(string $side,string $color):string=>'<a:'.$side.' w="12700" cap="flat" cmpd="sng" algn="ctr"><a:solidFill>'.$color.'</a:solidFill><a:prstDash val="solid"/><a:round/><a:headEnd type="none" w="med" len="med"/><a:tailEnd type="none" w="med" len="med"/></a:'.$side.'>';
+    $header=!empty($opt['header']);$border=$header?'<a:schemeClr val="bg1"><a:lumMod val="85000"/></a:schemeClr>':'<a:schemeClr val="bg2"/>';
+    $fill=$header?'<a:solidFill><a:schemeClr val="tx1"><a:lumMod val="75000"/><a:lumOff val="25000"/></a:schemeClr></a:solidFill>':'<a:solidFill><a:schemeClr val="bg1"><a:lumMod val="95000"/></a:schemeClr></a:solidFill>';
+    $size=(int)($opt['size']??($header?800:900));$align=$opt['align']??'l';$color=$header?'<a:solidFill><a:schemeClr val="bg1"/></a:solidFill>':'<a:solidFill><a:schemeClr val="tx1"/></a:solidFill>';
+    $runs='';foreach(explode("\n",$text) as $index=>$part){$runs.=($index?'</a:p><a:p><a:pPr marL="0" indent="0" algn="'.$align.'"><a:spcBef><a:spcPts val="0"/></a:spcBef><a:buNone/></a:pPr>':'').($part===''?'':'<a:r><a:rPr lang="de-DE" sz="'.$size.'"'.($header?' b="1"':'').' dirty="0">'.$color.'<a:latin typeface="+mn-lt"/></a:rPr><a:t>'.Pptx::esc($part).'</a:t></a:r>');}
+    $attributes=(isset($opt['rowSpan'])&&$opt['rowSpan']>1?' rowSpan="'.(int)$opt['rowSpan'].'"':'').(!empty($opt['vMerge'])?' vMerge="1"':'');
+    $margins=$opt['margins']??'';
+    return '<a:tc'.$attributes.'><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:pPr marL="0" indent="0" algn="'.$align.'"><a:lnSpc><a:spcPct val="100000"/></a:lnSpc><a:spcBef><a:spcPts val="0"/></a:spcBef><a:spcAft><a:spcPts val="0"/></a:spcAft><a:buNone/></a:pPr>'.$runs.'<a:endParaRPr lang="de-DE" sz="'.$size.'" dirty="0"/></a:p></a:txBody>'
+        .'<a:tcPr'.$margins.' anchor="ctr">'.$line('lnL',$border).$line('lnR',$border).$line('lnT',$border).$line('lnB',$border).$fill.'</a:tcPr></a:tc>';
+}
+
+/**
+ * Projekttabelle (Projekte × Rolloutobjekte) als PowerPoint im Format der Vorlage „Rolloutschwerpunkte“:
+ * Musterfolie der Vorlage ohne Themenfelder, Tabelle mit Projektname, Rolloutobjekte, Rollout-Klasse, -Beginn, -Ende.
+ */
+function download_project_table_pptx(PDO $db,string $title,string $footer): never {
+    $title=$title!==''?$title:'Rolloutschwerpunkte '.((int)date('Y')+1);$footer=$footer!==''?$footer:'Rolloutschwerpunkte | Stand '.german_long_date(date('Y-m-d'));
+    $deck=new Pptx(dirname(__DIR__).'/resources/powerpoint/rolloutschwerpunkte-tabelle-vorlage.pptx');
+    $prototype=$deck->file('ppt/slides/slide2.xml');if($prototype===null)throw new RuntimeException('In der Vorlage fehlt die Musterfolie.');
+    // Spalten wie in der Vorlage; die Themenfeld-Spalte entfällt, ihre Breite geht an „Projektname“
+    $columns=[1939820+414091,3811909,895739,1688841,2024743];$tableX=850800;$tableY=1295935;$bottom=6330000;$headerHeight=235806;$minRow=182880;$lineHeight=137160;
+    $linesFor=static function(string $text,int $width,float $pt)use(&$linesFor):int{$chars=max(8,(int)floor(($width-130000)/($pt*12700*0.5)));$lines=0;foreach(explode("\n",$text) as $part)$lines+=max(1,(int)ceil(mb_strlen($part)/$chars));return $lines;};
+    $projects=$db->query('SELECT * FROM projects ORDER BY name COLLATE NOCASE')->fetchAll();
+    $objectsByProject=[];foreach($db->query('SELECT * FROM rollout_objects ORDER BY start_date,name COLLATE NOCASE')->fetchAll() as $o)$objectsByProject[(int)$o['project_id']][]=$o;
+    if(!$projects)throw new RuntimeException('Es sind noch keine Projekte vorhanden.');
+    // Gruppen je Projekt mit geschätzter Zeilenhöhe
+    $groups=[];
+    foreach($projects as $project){
+        $rows=[];foreach($objectsByProject[(int)$project['id']]??[] as $o)$rows[]=['object'=>(string)$o['name'],'class'=>(string)($o['functional_class']?:'-'),'start'=>short_month_date($o['start_date']),'end'=>short_month_date($o['end_date'])];
+        if(!$rows)$rows[]=['object'=>'-','class'=>'-','start'=>'-','end'=>'-'];
+        foreach($rows as &$row)$row['height']=max($minRow,$linesFor($row['object'],$columns[1],9)*$lineHeight+45720);unset($row);
+        $groups[]=['name'=>(string)$project['name'],'rows'=>$rows];
+    }
+    $available=$bottom-$tableY-$headerHeight;$pages=[];$page=[];$used=0;
+    $projectHeight=static fn(string $name,array $rows):int=>max(array_sum(array_column($rows,'height')),$linesFor($name,$columns[0],9)*$lineHeight+45720);
+    foreach($groups as $group){
+        $rows=$group['rows'];$name=$group['name'];
+        while($rows){
+            $height=$projectHeight($name,$rows);
+            if($used+$height<=$available){$page[]=['name'=>$name,'rows'=>$rows];$used+=$height;$rows=[];break;}
+            if($page&&$height<=$available){$pages[]=$page;$page=[];$used=0;continue;}
+            // Projekt größer als der Platz: so viele Zeilen wie passen, Rest auf die nächste Folie
+            $take=[];$sum=0;foreach($rows as $row){if($take&&$used+$sum+$row['height']>$available)break;$take[]=$row;$sum+=$row['height'];}
+            $page[]=['name'=>$name,'rows'=>$take];$pages[]=$page;$page=[];$used=0;$rows=array_slice($rows,count($take));$name=$group['name'].' (Fortsetzung)';
+        }
+    }
+    if($page)$pages[]=$page;
+    $headerRow='<a:tr h="'.$headerHeight.'">'.rollout_table_cell('Projektname',['header'=>true]).rollout_table_cell('Rolloutobjekte',['header'=>true]).rollout_table_cell('Rollout-Klasse',['header'=>true,'align'=>'ctr','margins'=>' marL="0" marR="0" marT="0" marB="0"']).rollout_table_cell('Rollout-Beginn',['header'=>true,'align'=>'ctr','margins'=>' marL="0" marR="0" marT="0" marB="0"']).rollout_table_cell('Rollout-Ende',['header'=>true,'align'=>'ctr','margins'=>' marL="0" marR="0" marT="0" marB="0"']).'</a:tr>';
+    $grid='';foreach($columns as $width)$grid.='<a:gridCol w="'.$width.'"/>';
+    $slides=[];$layoutRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n".'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout34.xml"/></Relationships>';
+    foreach($pages as $index=>$entries){
+        $rowsXml='';$height=$headerHeight;
+        foreach($entries as $entry){
+            $count=count($entry['rows']);$extra=max(0,$projectHeight($entry['name'],$entry['rows'])-array_sum(array_column($entry['rows'],'height')));
+            foreach($entry['rows'] as $rowIndex=>$row){
+                $rowHeight=$row['height']+($rowIndex===$count-1?$extra:0);$height+=$rowHeight;
+                $rowsXml.='<a:tr h="'.$rowHeight.'">'.($rowIndex===0?rollout_table_cell($entry['name'],['rowSpan'=>$count]):rollout_table_cell('',['vMerge'=>true]))
+                    .rollout_table_cell($row['object'],['margins'=>' marL="36000" marR="0" marT="0" marB="0"'])
+                    .rollout_table_cell($row['class'],['size'=>800,'align'=>'ctr'])
+                    .rollout_table_cell($row['start'],['size'=>800,'align'=>'ctr','margins'=>' marL="0" marR="0" marT="0" marB="0"'])
+                    .rollout_table_cell($row['end'],['size'=>800,'align'=>'ctr','margins'=>' marL="0" marR="0" marT="0" marB="0"']).'</a:tr>';
+            }
+        }
+        $table='<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="39" name="Tabelle Rolloutschwerpunkte"/><p:cNvGraphicFramePr><a:graphicFrameLocks noGrp="1"/></p:cNvGraphicFramePr><p:nvPr/></p:nvGraphicFramePr><p:xfrm><a:off x="'.$tableX.'" y="'.$tableY.'"/><a:ext cx="'.array_sum($columns).'" cy="'.$height.'"/></p:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table"><a:tbl><a:tblPr firstRow="1" bandRow="1"><a:tableStyleId>{5940675A-B579-460E-94D1-54222C63F5DA}</a:tableStyleId></a:tblPr><a:tblGrid>'.$grid.'</a:tblGrid>'.$headerRow.$rowsXml.'</a:tbl></a:graphicData></a:graphic></p:graphicFrame>';
+        // Musterfolie: Themenfeld-Bilder, Subline „nach strategischen Themenfeldern“, leerer Inhaltsplatzhalter und alte Tabelle entfernen
+        $dom=new DOMDocument();$dom->loadXML($prototype);$xpath=new DOMXPath($dom);$xpath->registerNamespace('p','http://schemas.openxmlformats.org/presentationml/2006/main');$xpath->registerNamespace('a','http://schemas.openxmlformats.org/drawingml/2006/main');
+        foreach(iterator_to_array($xpath->query('/p:sld/p:cSld/p:spTree/*[self::p:grpSp or self::p:graphicFrame or self::p:pic]')) as $node)$node->parentNode->removeChild($node);
+        foreach(iterator_to_array($xpath->query('/p:sld/p:cSld/p:spTree/p:sp[.//p:ph[@idx="19" or @idx="14"]]')) as $node)$node->parentNode->removeChild($node);
+        $setText=static function(string $query,string $text)use($xpath):void{foreach($xpath->query($query) as $sp){$texts=$xpath->query('.//a:t',$sp);foreach($texts as $i=>$node)$node->nodeValue=$i===0?$text:'';}};
+        $setText('/p:sld/p:cSld/p:spTree/p:sp[.//p:ph[@type="title"]]',$title);
+        $setText('/p:sld/p:cSld/p:spTree/p:sp[.//p:ph[@type="ftr"]]',$footer);
+        $setText('/p:sld/p:cSld/p:spTree/p:sp[.//p:ph[@type="sldNum"]]',(string)($index+1));
+        $xml=$dom->saveXML();$xml=str_replace('</p:spTree>',$table.'</p:spTree>',$xml);
+        $slides[]=[$xml,$layoutRels];
+    }
+    Pptx::download($deck->buildSlides($slides),safe_template_filename($title).'-'.date('d.m.Y').'.pptx');
 }
 
 function download_overview_gaps(PDO $db,int $projectId): never {

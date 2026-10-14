@@ -1,5 +1,11 @@
 # Änderungsverlauf
 
+## 0.1.60
+
+- Neu unter „Import / Export“: „Projekttabelle als PowerPoint“ – alle Projekte mit ihren Rolloutobjekten, Rollout-Klasse, Rollout-Beginn und Rollout-Ende im Format der Tabelle „Rolloutschwerpunkte“ (Vorlage `resources/powerpoint/rolloutschwerpunkte-tabelle-vorlage.pptx`): gleiche Folie, Spalten, Schriftgrößen, Farben und Rahmen; ohne Zuordnung zu strategischen Themenfeldern
+- Titel (Vorgabe „Rolloutschwerpunkte <nächstes Jahr>“) und Fußzeile lassen sich vor dem Export anpassen. Projekte bleiben auf einer Folie zusammen; reicht der Platz nicht, folgt eine weitere Folie mit gleichem Aufbau
+- PowerPoint-Export allgemein: Nicht mehr verwendete Bilder der Vorlage werden aus der erzeugten Datei entfernt
+
 ## 0.1.59
 
 - Projektmatrix, Bereich Bankfachlich: Wird die Erbringung einer Leistung auf „zentral“ bzw. „regional“ umgestellt, wandert sie sofort in den Block „Projekt (zentral)“ bzw. „Regionalverbände (regional)“ – in der Nutzungstabelle und in der Matrix der Leistungserbringer, einsortiert nach Klasse und Name. Bei „Alle Rolloutobjekte“ gilt: regional, sobald die Leistung an mindestens einem genutzten Objekt regional erbracht wird
