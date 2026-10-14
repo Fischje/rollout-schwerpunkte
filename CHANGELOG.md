@@ -1,5 +1,10 @@
 # Änderungsverlauf
 
+## 0.1.62
+
+- Projekttabelle als PowerPoint: Die Tabelle endet spätestens 2 cm über dem unteren Folienrand. Zeilenhöhen werden großzügiger berechnet, weil die Zellen „Projektname“ und „Rollout-Klasse“ wie in der Vorlage Innenabstand haben – bisher konnten die Tabellen in PowerPoint weiter nach unten wachsen als geplant
+- Die Projekte werden gleichmäßig auf die Folien verteilt: zuerst wird die kleinste nötige Folienzahl ermittelt, dann werden die Projekte in ihrer Reihenfolge so aufgeteilt, dass alle Folien möglichst gleich voll sind. Ein Projekt bleibt weiterhin zusammen, sofern es allein auf eine Folie passt
+
 ## 0.1.61
 
 - Anmeldung hält länger: abgemeldet wird erst nach 12 Stunden ohne Aktivität (bisher PHP-Vorgabe: 24 Minuten) und nicht mehr beim Schließen des Browsers. Jeder Seitenaufruf verlängert die Sitzung

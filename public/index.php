@@ -1030,8 +1030,11 @@ function download_project_table_pptx(PDO $db,string $title,string $footer): neve
     $deck=new Pptx(dirname(__DIR__).'/resources/powerpoint/rolloutschwerpunkte-tabelle-vorlage.pptx');
     $prototype=$deck->file('ppt/slides/slide2.xml');if($prototype===null)throw new RuntimeException('In der Vorlage fehlt die Musterfolie.');
     // Spalten wie in der Vorlage; die Themenfeld-Spalte entfällt, ihre Breite geht an „Projektname“
-    $columns=[1939820+414091,3811909,895739,1688841,2024743];$tableX=850800;$tableY=1295935;$bottom=6330000;$headerHeight=235806;$minRow=182880;$lineHeight=137160;
-    $linesFor=static function(string $text,int $width,float $pt)use(&$linesFor):int{$chars=max(8,(int)floor(($width-130000)/($pt*12700*0.5)));$lines=0;foreach(explode("\n",$text) as $part)$lines+=max(1,(int)ceil(mb_strlen($part)/$chars));return $lines;};
+    // Tabelle endet spätestens 2 cm über dem unteren Folienrand (Folie 19,05 cm hoch)
+    $columns=[1939820+414091,3811909,895739,1688841,2024743];$tableX=850800;$tableY=1295935;$bottom=6858000-2*Pptx::EMU_CM;$headerHeight=235806;
+    // Höhen eher großzügig schätzen: Zellen „Projektname“ und „Rollout-Klasse“ haben wie in der Vorlage Innenabstand oben/unten (je 0,127 cm)
+    $lineHeight=137160;$cellPadding=91440;$minRow=8*12*1270+$cellPadding;
+    $linesFor=static function(string $text,int $width,float $pt):int{$chars=max(8,(int)floor(($width-130000)/($pt*12700*0.55)));$lines=0;foreach(explode("\n",$text) as $part)$lines+=max(1,(int)ceil(mb_strlen($part)/$chars));return $lines;};
     $projects=$db->query('SELECT * FROM projects ORDER BY name COLLATE NOCASE')->fetchAll();
     $objectsByProject=[];foreach($db->query('SELECT * FROM rollout_objects ORDER BY start_date,name COLLATE NOCASE')->fetchAll() as $o)$objectsByProject[(int)$o['project_id']][]=$o;
     if(!$projects)throw new RuntimeException('Es sind noch keine Projekte vorhanden.');
@@ -1043,20 +1046,31 @@ function download_project_table_pptx(PDO $db,string $title,string $footer): neve
         foreach($rows as &$row)$row['height']=max($minRow,$linesFor($row['object'],$columns[1],9)*$lineHeight+45720);unset($row);
         $groups[]=['name'=>(string)$project['name'],'rows'=>$rows];
     }
-    $available=$bottom-$tableY-$headerHeight;$pages=[];$page=[];$used=0;
-    $projectHeight=static fn(string $name,array $rows):int=>max(array_sum(array_column($rows,'height')),$linesFor($name,$columns[0],9)*$lineHeight+45720);
+    $available=$bottom-$tableY-$headerHeight;
+    $projectHeight=static fn(string $name,array $rows):int=>max(array_sum(array_column($rows,'height')),$linesFor($name,$columns[0],9)*$lineHeight+$cellPadding);
+    // Blöcke bilden: je Projekt einer; nur ein Projekt, das allein nicht auf eine Folie passt, wird geteilt („Fortsetzung“)
+    $units=[];
     foreach($groups as $group){
         $rows=$group['rows'];$name=$group['name'];
         while($rows){
-            $height=$projectHeight($name,$rows);
-            if($used+$height<=$available){$page[]=['name'=>$name,'rows'=>$rows];$used+=$height;$rows=[];break;}
-            if($page&&$height<=$available){$pages[]=$page;$page=[];$used=0;continue;}
-            // Projekt größer als der Platz: so viele Zeilen wie passen, Rest auf die nächste Folie
-            $take=[];$sum=0;foreach($rows as $row){if($take&&$used+$sum+$row['height']>$available)break;$take[]=$row;$sum+=$row['height'];}
-            $page[]=['name'=>$name,'rows'=>$take];$pages[]=$page;$page=[];$used=0;$rows=array_slice($rows,count($take));$name=$group['name'].' (Fortsetzung)';
+            if($projectHeight($name,$rows)<=$available){$units[]=['name'=>$name,'rows'=>$rows,'height'=>$projectHeight($name,$rows)];break;}
+            $take=[];$sum=0;foreach($rows as $row){if($take&&$sum+$row['height']>$available)break;$take[]=$row;$sum+=$row['height'];}
+            $units[]=['name'=>$name,'rows'=>$take,'height'=>$projectHeight($name,$take)];$rows=array_slice($rows,count($take));$name=$group['name'].' (Fortsetzung)';
         }
     }
-    if($page)$pages[]=$page;
+    // Mindestzahl der Folien (der Reihe nach auffüllen) …
+    $pageCount=0;$used=$available+1;foreach($units as $unit){if($used+$unit['height']>$available){$pageCount++;$used=0;}$used+=$unit['height'];}
+    // … und dann gleichmäßig verteilen: Reihenfolge bleibt, alle Folien möglichst gleich voll (kleinste Summe der quadrierten Füllhöhen)
+    $count=count($units);$prefix=[0];foreach($units as $unit)$prefix[]=end($prefix)+$unit['height'];$scale=1/max(1,$available);
+    $best=array_fill(0,$pageCount+1,array_fill(0,$count+1,INF));$cut=array_fill(0,$pageCount+1,array_fill(0,$count+1,0));$best[0][0]=0.0;
+    for($p=1;$p<=$pageCount;$p++)for($i=1;$i<=$count;$i++)for($j=$p-1;$j<$i;$j++){
+        if($best[$p-1][$j]===INF)continue;$load=$prefix[$i]-$prefix[$j];if($load>$available)continue;
+        $value=$best[$p-1][$j]+($load*$scale)**2;if($value<$best[$p][$i]){$best[$p][$i]=$value;$cut[$p][$i]=$j;}
+    }
+    $pages=[];
+    if($best[$pageCount][$count]===INF){$pages[]=$units;}
+    else{$end=$count;for($p=$pageCount;$p>=1;$p--){$start=$cut[$p][$end];array_unshift($pages,array_slice($units,$start,$end-$start));$end=$start;}}
+    $pages=array_map(static fn(array $page):array=>array_map(static fn(array $unit):array=>['name'=>$unit['name'],'rows'=>$unit['rows']],$page),$pages);
     $headerRow='<a:tr h="'.$headerHeight.'">'.rollout_table_cell('Projektname',['header'=>true]).rollout_table_cell('Rolloutobjekte',['header'=>true]).rollout_table_cell('Rollout-Klasse',['header'=>true,'align'=>'ctr','margins'=>' marL="0" marR="0" marT="0" marB="0"']).rollout_table_cell('Rollout-Beginn',['header'=>true,'align'=>'ctr','margins'=>' marL="0" marR="0" marT="0" marB="0"']).rollout_table_cell('Rollout-Ende',['header'=>true,'align'=>'ctr','margins'=>' marL="0" marR="0" marT="0" marB="0"']).'</a:tr>';
     $grid='';foreach($columns as $width)$grid.='<a:gridCol w="'.$width.'"/>';
     $slides=[];$layoutRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n".'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout34.xml"/></Relationships>';
