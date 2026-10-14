@@ -1,5 +1,10 @@
 # Änderungsverlauf
 
+## 0.1.58
+
+- Projektmatrix: Wird oben eine Standardleistung angehakt, erscheint sie sofort unten in „Nutzung je Rolloutobjekt“ und in der Matrix der Leistungserbringer; wird sie abgewählt, verschwindet sie dort sofort. Übernommen wird wie bisher mit „Angezeigten Ausschnitt speichern“
+- Ist ein einzelnes Rolloutobjekt gewählt, erscheint eine Leistung in der Matrix der Leistungserbringer, sobald sie an diesem Objekt angehakt ist, und verschwindet beim Abhaken wieder
+
 ## 0.1.57
 
 - Begriff: Aus „Projektleistung“ wird überall „Rolloutleistung“ (Oberfläche, Exporte, Datensatz-Spalte). Ältere Dateien mit „Projektleistung“ lassen sich weiterhin importieren
