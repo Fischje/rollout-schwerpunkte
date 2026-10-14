@@ -1,5 +1,10 @@
 # Änderungsverlauf
 
+## 0.1.59
+
+- Projektmatrix, Bereich Bankfachlich: Wird die Erbringung einer Leistung auf „zentral“ bzw. „regional“ umgestellt, wandert sie sofort in den Block „Projekt (zentral)“ bzw. „Regionalverbände (regional)“ – in der Nutzungstabelle und in der Matrix der Leistungserbringer, einsortiert nach Klasse und Name. Bei „Alle Rolloutobjekte“ gilt: regional, sobald die Leistung an mindestens einem genutzten Objekt regional erbracht wird
+- Angaben der Regionalverbände zu einer Leistung, die vor dem Speichern auf zentral umgestellt wird, werden nicht mitgespeichert (zentral wird nicht abgefragt)
+
 ## 0.1.58
 
 - Projektmatrix: Wird oben eine Standardleistung angehakt, erscheint sie sofort unten in „Nutzung je Rolloutobjekt“ und in der Matrix der Leistungserbringer; wird sie abgewählt, verschwindet sie dort sofort. Übernommen wird wie bisher mit „Angezeigten Ausschnitt speichern“
