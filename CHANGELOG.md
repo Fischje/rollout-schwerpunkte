@@ -1,5 +1,11 @@
 # Änderungsverlauf
 
+## 0.1.64
+
+- RV-Abfragedatei: „Genutzt für Rolloutobjekte“ steht jetzt bei den Eingabespalten direkt hinter der Leistungsklasse. In den Zeilen „Neue Rolloutleistung“ ist das Feld auszufüllen (gelb) und bietet eine Auswahlliste mit den Rolloutobjekten des jeweiligen Projekts sowie „Alle Rolloutobjekte“; mehrere Objekte sind per Zeilenumbruch in der Zelle oder durch Kopieren der Zeile möglich
+- Rückimport: Für neue Rolloutleistungen aus einer Rückmeldung werden die genannten Rolloutobjekte als Nutzung übernommen (bisher wurde das Feld bei Rückmeldungen nicht ausgewertet). Bei bestehenden Leistungen bleibt die Spalte reine Information
+- Korrektur: Der Importassistent behielt die Kennzeichnung „Neue Rolloutleistung“ beim Prüfschritt nicht bei
+
 ## 0.1.63
 
 - Neu: Strategische Themenfelder. Jedes Projekt kann einem der neun Themenfelder zugeordnet werden (Projektformular „Strategisches Themenfeld“); die Projektliste zeigt das Themenfeld unter dem Projektnamen

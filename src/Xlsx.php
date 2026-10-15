@@ -100,7 +100,7 @@ final class Xlsx
         // RV-Abfragedatei: Spalten werden über ihre Überschriften angesprochen, nicht über feste Positionen
         $rvColumn = [];
         if ($rvLayout) foreach (array_values($rows[0] ?? []) as $index => $header) $rvColumn[(string)$header] = $index;
-        $rvInfoStart = $rvColumn['Genutzt für Rolloutobjekte'] ?? PHP_INT_MAX;
+        $rvInfoStart = $rvColumn['Erbracht durch'] ?? PHP_INT_MAX;
         $xmlRows = '';
         foreach ($rows as $rowNumber => $row) {
             $cells = '';
@@ -115,7 +115,7 @@ final class Xlsx
                         $pick = static fn(array $names): array => array_values(array_filter(array_map(static fn($name) => $rvColumn[$name] ?? null, $names), static fn($index) => $index !== null));
                         $editableColumns = match (true) {
                             $isProjectRow => $pick(['Ansprechpartner', 'Telefonnummer']),
-                            $rowType === 'neue rolloutleistung' || $rowType === 'neue projektleistung' => $pick(['Rolloutleistung', 'Leistungsklasse', 'Bereitstellungsart', 'Anderer Regionalverband / externer Dienstleister', 'Termin / Zeitraum', 'Bemerkung']),
+                            $rowType === 'neue rolloutleistung' || $rowType === 'neue projektleistung' => $pick(['Rolloutleistung', 'Leistungsklasse', 'Genutzt für Rolloutobjekte', 'Bereitstellungsart', 'Anderer Regionalverband / externer Dienstleister', 'Termin / Zeitraum', 'Bemerkung']),
                             default => $pick(['Bereitstellungsart', 'Anderer Regionalverband / externer Dienstleister', 'Termin / Zeitraum', 'Bemerkung']),
                         };
                         if ($columnNumber === ($rvColumn['Termin / Zeitraum'] ?? -1) && mb_strtolower(trim((string)$value)) === 'nicht relevant') $editableColumns = array_values(array_diff($editableColumns, [$columnNumber]));
@@ -172,7 +172,28 @@ final class Xlsx
             $classLetter = self::columnName($rvColumn['Leistungsklasse'] ?? 3);
             $modeLetter = self::columnName($rvColumn['Bereitstellungsart'] ?? 5);
             $partnerLetter = self::columnName($rvColumn['Anderer Regionalverband / externer Dienstleister'] ?? 6);
-            $validations = '<dataValidations count="2"><dataValidation type="list" allowBlank="1" showErrorMessage="1" errorTitle="Ungültige Leistungsklasse" error="Für neue Rolloutleistungen bitte A, B, C oder D auswählen." sqref="' . $classLetter . '2:' . $classLetter . $lastRow . '"><formula1>&quot;A,B,C,D&quot;</formula1></dataValidation><dataValidation type="list" allowBlank="1" showErrorMessage="1" errorTitle="Ungültige Bereitstellungsart" error="Bitte einen Eintrag aus der Liste auswählen." sqref="' . $modeLetter . '2:' . $modeLetter . $lastRow . '"><formula1>&quot;Eigene Bereitstellung,Anderer Regionalverband,Externer Dienstleister,Keine Bereitstellung&quot;</formula1></dataValidation></dataValidations>';
+            // „Genutzt für Rolloutobjekte“: in neuen Zeilen Auswahl aus den Rolloutobjekten des jeweiligen Projekts (Listenblatt), mehrere Objekte auch per Zeilenumbruch möglich
+            $objectValidations = '';
+            $rvLists = [];
+            if (isset($rvColumn['Genutzt für Rolloutobjekte'])) {
+                $usedLetter = self::columnName($rvColumn['Genutzt für Rolloutobjekte']);
+                $projectColumn = $rvColumn['Projekt'] ?? 0;
+                $rangesByProject = [];
+                foreach ($rows as $rowNumber => $row) {
+                    if ($rowNumber === 0) continue;
+                    $rowType = mb_strtolower(trim((string)($row[$rvColumn['Datensatz'] ?? 1] ?? '')));
+                    if ($rowType !== 'neue rolloutleistung') continue;
+                    $rangesByProject[(string)($row[$projectColumn] ?? '')][] = $usedLetter . ($rowNumber + 1);
+                }
+                $listIndex = 0;
+                foreach ($rangesByProject as $projectName => $cells) {
+                    $values = array_merge(['Alle Rolloutobjekte'], array_values((array)(($options['object_lists'] ?? [])[$projectName] ?? [])));
+                    $rvLists[] = $values;
+                    $listLetter = self::columnName($listIndex++);
+                    $objectValidations .= '<dataValidation type="list" allowBlank="1" showErrorMessage="1" errorStyle="warning" errorTitle="Rolloutobjekt prüfen" error="Bitte ein Rolloutobjekt dieses Projekts auswählen. Mehrere Objekte: je Zeile eines (Alt+Eingabe) oder die Zeile kopieren." sqref="' . implode(' ', $cells) . '"><formula1>Listen!$' . $listLetter . '$1:$' . $listLetter . '$' . count($values) . '</formula1></dataValidation>';
+                }
+            }
+            $validations = '<dataValidations count="' . (2 + substr_count($objectValidations, '<dataValidation ')) . '"><dataValidation type="list" allowBlank="1" showErrorMessage="1" errorTitle="Ungültige Leistungsklasse" error="Für neue Rolloutleistungen bitte A, B, C oder D auswählen." sqref="' . $classLetter . '2:' . $classLetter . $lastRow . '"><formula1>&quot;A,B,C,D&quot;</formula1></dataValidation><dataValidation type="list" allowBlank="1" showErrorMessage="1" errorTitle="Ungültige Bereitstellungsart" error="Bitte einen Eintrag aus der Liste auswählen." sqref="' . $modeLetter . '2:' . $modeLetter . $lastRow . '"><formula1>&quot;Eigene Bereitstellung,Anderer Regionalverband,Externer Dienstleister,Keine Bereitstellung&quot;</formula1></dataValidation>' . $objectValidations . '</dataValidations>';
             $conditional = '<conditionalFormatting sqref="' . $modeLetter . '2:' . $partnerLetter . $lastRow . '"><cfRule type="expression" dxfId="0" priority="1"><formula>$' . $modeLetter . '2=&quot;Eigene Bereitstellung&quot;</formula></cfRule><cfRule type="expression" dxfId="1" priority="2"><formula>$' . $modeLetter . '2=&quot;Anderer Regionalverband&quot;</formula></cfRule><cfRule type="expression" dxfId="2" priority="3"><formula>$' . $modeLetter . '2=&quot;Externer Dienstleister&quot;</formula></cfRule><cfRule type="expression" dxfId="3" priority="4"><formula>$' . $modeLetter . '2=&quot;Keine Bereitstellung&quot;</formula></cfRule></conditionalFormatting>';
             $sheetAfterData = '<autoFilter ref="A1:' . $lastColumn . $lastRow . '"/>' . $conditional . $validations . '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/><pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/>';
             $styleContentType = '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>';
@@ -217,6 +238,7 @@ final class Xlsx
         ];
         if ($styles !== null) $entries['xl/styles.xml'] = $styles;
         if (isset($options['legend']) && is_array($options['legend']) && $styledLayout) self::appendLegendSheet($entries, $options['legend']);
+        if ($rvLayout && !empty($rvLists)) self::appendHiddenListSheet($entries, $rvLists, isset($options['legend']) && is_array($options['legend']) ? 3 : 2);
         return self::buildZip($entries);
     }
 
@@ -328,6 +350,23 @@ final class Xlsx
     }
 
     /** Fügt zu einer formatierten Einblattdatei das einheitliche Legendenblatt hinzu. */
+    /** Ausgeblendetes Blatt „Listen“: je Spalte eine Auswahlliste (z. B. Rolloutobjekte eines Projekts). */
+    private static function appendHiddenListSheet(array &$entries, array $lists, int $sheetNumber): void
+    {
+        $rowsXml = '';
+        $max = max(array_map('count', $lists));
+        for ($row = 0; $row < $max; $row++) {
+            $cells = '';
+            foreach (array_values($lists) as $column => $values) if (isset($values[$row])) $cells .= self::inlineCell($column, $row + 1, (string)$values[$row], 0);
+            $rowsXml .= '<row r="' . ($row + 1) . '">' . $cells . '</row>';
+        }
+        $rid = 'rId' . ($sheetNumber + 1);
+        $entries['[Content_Types].xml'] = str_replace('</Types>', '<Override PartName="/xl/worksheets/sheet' . $sheetNumber . '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>', $entries['[Content_Types].xml']);
+        $entries['xl/workbook.xml'] = str_replace('</sheets>', '<sheet name="Listen" sheetId="' . $sheetNumber . '" state="hidden" r:id="' . $rid . '"/></sheets>', $entries['xl/workbook.xml']);
+        $entries['xl/_rels/workbook.xml.rels'] = str_replace('</Relationships>', '<Relationship Id="' . $rid . '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' . $sheetNumber . '.xml"/></Relationships>', $entries['xl/_rels/workbook.xml.rels']);
+        $entries['xl/worksheets/sheet' . $sheetNumber . '.xml'] = '<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' . $rowsXml . '</sheetData></worksheet>';
+    }
+
     private static function appendLegendSheet(array &$entries,array $legend): void
     {
         $entries['[Content_Types].xml']=str_replace('</Types>','<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>',$entries['[Content_Types].xml']);
