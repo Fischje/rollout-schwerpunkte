@@ -41,6 +41,7 @@ final class Database
             self::ensureServiceNamesPerCatalog($db);
             self::ensureOriginColumns($db);
             self::ensureStrategicFields($db);
+            self::ensureProviderRolloutContacts($db);
             return;
         }
 
@@ -69,6 +70,14 @@ final class Database
     }
 
     /** Seit 0.1.43: Flag „Immer enthalten“ an Leistungen; wird bei bestehenden Datenbanken einmalig ergänzt, das Schema bleibt Version 23. */
+    /** Rollout-Ansprechpartner je Leistungserbringer, unabhängig von den Ansprechpartnern je Projekt. */
+    private static function ensureProviderRolloutContacts(PDO $db): void
+    {
+        $columns = array_column($db->query('PRAGMA table_info(providers)')->fetchAll(), 'name');
+        if (!in_array('rollout_contact_name', $columns, true)) $db->exec("ALTER TABLE providers ADD COLUMN rollout_contact_name TEXT NOT NULL DEFAULT ''");
+        if (!in_array('rollout_contact_email', $columns, true)) $db->exec("ALTER TABLE providers ADD COLUMN rollout_contact_email TEXT NOT NULL DEFAULT ''");
+    }
+
     /** Neun strategische Themenfelder; jedes Projekt kann einem davon zugeordnet werden. */
     private static function ensureStrategicFields(PDO $db): void
     {

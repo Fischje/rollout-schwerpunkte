@@ -1,5 +1,14 @@
 # Änderungsverlauf
 
+## 0.1.65
+
+- Neues Menü: Übersicht, Projektanpassung, Einstellungen, Import/Export. Die Übersicht ist jetzt die Startseite (auch beim Klick auf das Logo); die bisherige Seite „Projekte“ heißt „Projektanpassung“
+- Einstellungen mit den Reitern Standard-Leistungskatalog, Leistungserbringer und Klassenschema. Die Klassenschemata von FI und DSV sowie die Kombinationsmöglichkeiten stehen jetzt auf dem eigenen Reiter „Klassenschema“
+- Leistungserbringer: getrennte Abschnitte „Regionalverbände“ und „Dienstleister“ (FI, DSV); neu für alle ein Rollout-Ansprechpartner mit E-Mail-Adresse, unabhängig von den Ansprechpartnern je Projekt. Bestehende Datenbanken werden automatisch ergänzt
+- Import/Export mit den Reitern Export und Import, beide nach Phasen gegliedert: Phase 1 TPL/PL, Phase 2 FI und DSV (als auslaufend gekennzeichnet), Phase 3 Regionalverbände, beim Export zusätzlich Phase 4 „Auswertung und Präsentation“ sowie die Stammdaten (Leistungskataloge)
+- Export Phase 4 bündelt Gesamtbild (Excel/CSV), offene Punkte als Excel (einzelnes Projekt oder alle), Projektübersicht als PowerPoint und Projekttabelle als PowerPoint. Die Buttons „Als PowerPoint“ und „Offene Punkte als Excel“ auf der Übersicht entfallen
+- Import: je Phase ein eigenes Upload-Feld, die Importart ergibt sich daraus. Katalogdateien und neue Strukturdaten stehen unter „Stammdaten“, die erwarteten Spalten als aufklappbare Hilfe
+
 ## 0.1.64
 
 - RV-Abfragedatei: „Genutzt für Rolloutobjekte“ steht jetzt bei den Eingabespalten direkt hinter der Leistungsklasse. In den Zeilen „Neue Rolloutleistung“ ist das Feld auszufüllen (gelb) und bietet eine Auswahlliste mit den Rolloutobjekten des jeweiligen Projekts sowie „Alle Rolloutobjekte“; mehrere Objekte sind per Zeilenumbruch in der Zelle oder durch Kopieren der Zeile möglich

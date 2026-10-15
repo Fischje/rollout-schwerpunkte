@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.64
+# Rollout-Schwerpunkte 0.1.65
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -14,12 +14,12 @@ Regionalverbände.
 - Zusätzliche, nicht standardisierte Leistungen gehören genau zu einem Projekt.
 - A–D bezeichnet die Rolloutklasse Bankfachlich und steuert Leistungen der
   Regionalverbände kumulativ: C umfasst A, B und C.
-- FI und DSV verwenden je ein eigenes, unter `Leistungserbringer`
-  konfigurierbares, kumulatives Klassenschema (zwei bis acht Stufen, Standard
+- FI und DSV verwenden je ein eigenes, unter „Einstellungen →
+  Klassenschema“ konfigurierbares, kumulatives Klassenschema (zwei bis acht Stufen, Standard
   1–3). Die feste Klasse 0 kennzeichnet Rolloutobjekte, bei denen keine
   Unterstützungsleistung des jeweiligen Verbunddienstleisters erforderlich ist.
-- Der DSV verwendet ein eigenes, unter `Leistungserbringer` konfigurierbares
-  Klassenschema. Möglich sind 1–3, A–D oder zwei bis acht frei benannte,
+- Der DSV verwendet ein eigenes, unter „Einstellungen → Klassenschema“
+  konfigurierbares Klassenschema. Möglich sind 1–3, A–D oder zwei bis acht frei benannte,
   kumulativ geordnete Klassen. Auch beim DSV ist die vorgelagerte Klasse 0 fest
   für Rolloutobjekte ohne erforderliche DSV-Unterstützungsleistung reserviert.
 - Es gibt drei getrennte Kataloge: Bankfachlich (Regionalverbände bzw.
@@ -41,8 +41,25 @@ Regionalverbände.
 - Je Leistung wird festgelegt, ob ein
   Termin/Zeitraum relevant ist.
 - Je Projekt und Leistungserbringer wird genau ein Ansprechpartner gepflegt.
+  Unabhängig davon hat jeder Leistungserbringer unter „Einstellungen →
+  Leistungserbringer“ einen festen Rollout-Ansprechpartner mit E-Mail-Adresse.
 - Regionalverbände erfassen bei B–D die Bereitstellungsart: selbst, anderer
   Regionalverband, externer Dienstleister oder keine Bereitstellung.
+
+## Menü
+
+- **Übersicht** (Startseite, auch über das Logo): Leistungserbringung je Projekt.
+- **Projektanpassung**: Projektliste mit Rolloutobjekten, Projektformular und
+  Projektmatrix.
+- **Einstellungen** mit den Reitern Standard-Leistungskatalog,
+  Leistungserbringer (Abschnitte „Regionalverbände“ und „Dienstleister“) und
+  Klassenschema (FI, DSV, Kombinationsmöglichkeiten).
+- **Import/Export** mit den Reitern Export und Import. Beide sind gleich
+  gegliedert: Phase 1 TPL/PL, Phase 2 FI und DSV (auslaufend), Phase 3
+  Regionalverbände, beim Export zusätzlich Phase 4 „Auswertung und
+  Präsentation“, darunter jeweils die Stammdaten (Leistungskataloge). Beim
+  Import hat jede Phase ein eigenes Upload-Feld; die Importart ergibt sich
+  daraus.
 
 ## Dreiphasiger Excel-Ablauf
 
@@ -182,7 +199,7 @@ Regionalverband.
 
 ## PowerPoint-Export
 
-Auf der Seite „Übersicht“ erzeugt „Als PowerPoint“ für das gewählte Projekt eine
+Auf der Seite „Import/Export → Export“ (Phase 4) erzeugt „Projektübersicht als PowerPoint“ für das gewählte Projekt eine
 Präsentation auf Basis der Vorlage `resources/powerpoint/synchronisation-rollout-vorlage.pptx`
 (Master, Schriften, Titel- und Schlussfolie bleiben erhalten). Inhaltsfolien:
 „Status und Überblick“, „Bankfachliche Leistungen“ und „Leistungen von FI und DSV“,
@@ -191,14 +208,14 @@ folgen Fortsetzungsfolien. Wird die Vorlage ausgetauscht, müssen die Platzhalte
 „Projektname, Datum“ (Titelfolie) und „Titel der Präsentation | Name | Ort, Datum“
 (Schlussfolie) sowie das Layout „Text-Folie #1“ (`slideLayout18.xml`) erhalten bleiben.
 
-Unter „Import / Export“ erzeugt „Projekttabelle als PowerPoint“ die Tabelle
+Unter „Import/Export → Export“ (Phase 4) erzeugt „Projekttabelle als PowerPoint“ die Tabelle
 aller Projekte mit Rolloutobjekten, Rollout-Klasse (bankfachlich), Rollout-Beginn
 und -Ende im Format der Vorlage
 `resources/powerpoint/rolloutschwerpunkte-tabelle-vorlage.pptx` (Musterfolie 2,
 Layout „Text-/Bild-Folie #9“) mit Themenfeld-Spalte, Subline „nach strategischen
 Themenfeldern“ und den neun Themenfeld-Bildern. Sortiert wird nach dem
 strategischen Themenfeld des Projekts (im Projektformular; die neun Namen unten
-auf der Seite „Projekte“ pflegbar), dann nach Projektname. Titel und Fußzeile
+auf der Seite „Projektanpassung“ pflegbar), dann nach Projektname. Titel und Fußzeile
 sind vor dem Export änderbar; die Tabelle endet 2 cm über dem unteren Rand, die
 Projekte werden gleichmäßig auf die Folien verteilt.
 
@@ -264,7 +281,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.64**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.65**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.
