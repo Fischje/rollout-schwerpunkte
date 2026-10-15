@@ -1,5 +1,11 @@
 # Änderungsverlauf
 
+## 0.1.66
+
+- Rollout-Ansprechpartner: je Leistungserbringer jetzt beliebig viele Personen mit E-Mail-Adresse („+ weiterer Ansprechpartner“, × zum Entfernen). Ein in 0.1.65 eingetragener Ansprechpartner wird automatisch übernommen
+- Neue Excel-Datei „Rollout-Ansprechpartner“ unter Export → Stammdaten (eine Zeile je Person, Leistungserbringer per Auswahlliste, freie Zeilen für Ergänzungen) und passender Upload unter Import → Stammdaten mit Änderungsvorschau. Für jeden Leistungserbringer in der Datei ersetzt sie die bisherige Liste; nicht enthaltene Leistungserbringer bleiben unverändert
+- Ungültige E-Mail-Adressen, unbekannte Leistungserbringer und doppelte Einträge werden mit Zeilenangabe abgelehnt
+
 ## 0.1.65
 
 - Neues Menü: Übersicht, Projektanpassung, Einstellungen, Import/Export. Die Übersicht ist jetzt die Startseite (auch beim Klick auf das Logo); die bisherige Seite „Projekte“ heißt „Projektanpassung“

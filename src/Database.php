@@ -70,12 +70,17 @@ final class Database
     }
 
     /** Seit 0.1.43: Flag „Immer enthalten“ an Leistungen; wird bei bestehenden Datenbanken einmalig ergänzt, das Schema bleibt Version 23. */
-    /** Rollout-Ansprechpartner je Leistungserbringer, unabhängig von den Ansprechpartnern je Projekt. */
+    /** Beliebig viele Rollout-Ansprechpartner je Leistungserbringer, unabhängig von den Ansprechpartnern je Projekt.
+     *  0.1.65 hatte genau ein Feldpaar an providers; dessen Werte werden beim Anlegen der Tabelle einmalig übernommen. */
     private static function ensureProviderRolloutContacts(PDO $db): void
     {
+        $exists = (int)$db->query("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='provider_rollout_contacts'")->fetchColumn() > 0;
+        if ($exists) return;
+        $db->exec('CREATE TABLE provider_rollout_contacts (id INTEGER PRIMARY KEY AUTOINCREMENT, provider_id INTEGER NOT NULL REFERENCES providers(id) ON DELETE CASCADE, name TEXT NOT NULL DEFAULT \'\', email TEXT NOT NULL DEFAULT \'\', sort_order INTEGER NOT NULL DEFAULT 0)');
         $columns = array_column($db->query('PRAGMA table_info(providers)')->fetchAll(), 'name');
-        if (!in_array('rollout_contact_name', $columns, true)) $db->exec("ALTER TABLE providers ADD COLUMN rollout_contact_name TEXT NOT NULL DEFAULT ''");
-        if (!in_array('rollout_contact_email', $columns, true)) $db->exec("ALTER TABLE providers ADD COLUMN rollout_contact_email TEXT NOT NULL DEFAULT ''");
+        if (in_array('rollout_contact_name', $columns, true) && in_array('rollout_contact_email', $columns, true)) {
+            $db->exec("INSERT INTO provider_rollout_contacts(provider_id,name,email,sort_order) SELECT id,TRIM(rollout_contact_name),TRIM(rollout_contact_email),0 FROM providers WHERE TRIM(rollout_contact_name)<>'' OR TRIM(rollout_contact_email)<>''");
+        }
     }
 
     /** Neun strategische Themenfelder; jedes Projekt kann einem davon zugeordnet werden. */

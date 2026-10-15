@@ -646,3 +646,95 @@ function strategic_field_label(?int $id, array $fields): string {
     $name = trim((string)($fields[$id] ?? ''));
     return $id . '. ' . ($name !== '' ? $name : 'Themenfeld ' . $id);
 }
+
+/** Rollout-Ansprechpartner je Leistungserbringer: [provider_id => [['name'=>…,'email'=>…], …]] in gepflegter Reihenfolge. */
+function provider_rollout_contacts(PDO $db): array {
+    $contacts = [];
+    foreach ($db->query('SELECT provider_id,name,email FROM provider_rollout_contacts ORDER BY provider_id,sort_order,id')->fetchAll() as $row) {
+        $contacts[(int)$row['provider_id']][] = ['name' => (string)$row['name'], 'email' => (string)$row['email']];
+    }
+    return $contacts;
+}
+
+/** Leistungserbringer in der Reihenfolge der Einstellungsseite: erst Regionalverbände, dann Dienstleister. */
+function providers_for_contacts(PDO $db): array {
+    return $db->query("SELECT * FROM providers ORDER BY CASE type WHEN 'RV' THEN 1 WHEN 'FI' THEN 2 WHEN 'DSV' THEN 3 ELSE 4 END,sort_order,name")->fetchAll();
+}
+
+/** Ersetzt die Rollout-Ansprechpartner eines Leistungserbringers; leere Zeilen werden übergangen. */
+function save_provider_rollout_contacts(PDO $db, int $providerId, string $providerName, array $contacts): void {
+    $clean = [];
+    foreach ($contacts as $contact) {
+        $name = trim((string)($contact['name'] ?? ''));
+        $email = trim((string)($contact['email'] ?? ''));
+        if ($name === '' && $email === '') continue;
+        if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false) throw new RuntimeException('Die E-Mail-Adresse „' . $email . '“ bei ' . $providerName . ' ist ungültig.');
+        $key = mb_strtolower($email !== '' ? $email : $name);
+        if (isset($clean[$key])) throw new RuntimeException('Bei ' . $providerName . ' ist „' . ($email !== '' ? $email : $name) . '“ doppelt eingetragen.');
+        $clean[$key] = [$name, $email];
+    }
+    $db->prepare('DELETE FROM provider_rollout_contacts WHERE provider_id=?')->execute([$providerId]);
+    $insert = $db->prepare('INSERT INTO provider_rollout_contacts(provider_id,name,email,sort_order) VALUES(?,?,?,?)');
+    foreach (array_values($clean) as $index => [$name, $email]) $insert->execute([$providerId, $name, $email, $index + 1]);
+}
+
+/** Excel-Pflegedatei der Rollout-Ansprechpartner: eine Zeile je Person, freie Zeilen für Ergänzungen. */
+function provider_contacts_workbook(PDO $db): array {
+    $providers = providers_for_contacts($db);
+    $contacts = provider_rollout_contacts($db);
+    $rows = [['Leistungserbringer', 'Bereich', 'Name', 'E-Mail-Adresse']];
+    foreach ($providers as $provider) {
+        $area = $provider['type'] === 'RV' ? 'Regionalverband' : 'Dienstleister';
+        $list = $contacts[(int)$provider['id']] ?? [['name' => '', 'email' => '']];
+        foreach ($list as $contact) $rows[] = [(string)$provider['name'], $area, $contact['name'], $contact['email']];
+    }
+    for ($i = 0; $i < 20; $i++) $rows[] = ['', '', '', ''];
+    $legend = [
+        ['type' => 'title', 'values' => ['Rollout-Ansprechpartner der Leistungserbringer']],
+        ['type' => 'note', 'values' => ['Eine Zeile je Person', 'Weitere Personen in einer freien Zeile oder durch Einfügen einer Zeile ergänzen; den Leistungserbringer aus der Auswahlliste wählen.']],
+        ['type' => 'note', 'values' => ['Datei ist maßgeblich', 'Für jeden Leistungserbringer, der in der Datei vorkommt, ersetzt die Datei die bisherige Liste. Wer gelöscht werden soll, wird aus der Datei entfernt; eine Zeile nur mit dem Leistungserbringer leert dessen Liste.']],
+        ['type' => 'note', 'values' => ['Nicht enthalten', 'Leistungserbringer, die in der Datei gar nicht vorkommen, bleiben unverändert.']],
+        ['type' => 'note', 'values' => ['Spalte „Bereich“', 'Nur zur Information; sie wird beim Import nicht ausgewertet.']],
+    ];
+    return ['rows' => $rows, 'legend' => $legend, 'sheet_name' => 'Rollout-Ansprechpartner', 'info_columns' => [1], 'widths' => ['Leistungserbringer' => 22, 'Bereich' => 18, 'Name' => 36, 'E-Mail-Adresse' => 46], 'lists' => [0 => array_column($providers, 'name')]];
+}
+
+/** Liest eine Pflegedatei der Rollout-Ansprechpartner ein und schreibt sie (innerhalb einer Transaktion des Aufrufers). Liefert die Anzahl Personen. */
+function import_provider_contacts(PDO $db, array $rows): int {
+    if (count($rows) < 2) throw new RuntimeException('Die Datei enthält keine Datenzeilen.');
+    $normalize = static fn(string $value): string => mb_strtolower((string)preg_replace('/[^a-zA-Z0-9äöüÄÖÜß]/u', '', $value));
+    $map = [];
+    foreach ((array)$rows[0] as $index => $header) {
+        $key = $normalize((string)$header);
+        if (in_array($key, ['leistungserbringer', 'regionalverband', 'dienstleister'], true)) $map['provider'] ??= $index;
+        elseif (in_array($key, ['name', 'rolloutansprechpartner', 'ansprechpartner'], true)) $map['name'] ??= $index;
+        elseif (in_array($key, ['email', 'emailadresse', 'mail'], true)) $map['email'] ??= $index;
+    }
+    foreach (['provider' => 'Leistungserbringer', 'name' => 'Name', 'email' => 'E-Mail-Adresse'] as $field => $label) {
+        if (!isset($map[$field])) throw new RuntimeException('Die erwartete Spalte „' . $label . '“ fehlt. Bitte die Datei „Rollout-Ansprechpartner“ von der Export-Seite verwenden.');
+    }
+    $providers = [];
+    foreach ($db->query('SELECT id,name FROM providers')->fetchAll() as $provider) $providers[mb_strtolower(trim((string)$provider['name']))] = $provider;
+    $lists = [];
+    foreach (array_slice($rows, 1) as $offset => $row) {
+        $get = static fn(string $field): string => trim((string)($row[$map[$field]] ?? ''));
+        $providerName = $get('provider');
+        $name = $get('name');
+        $email = $get('email');
+        if ($providerName === '' && $name === '' && $email === '') continue;
+        $line = 'Zeile ' . ($offset + 2) . ': ';
+        if ($providerName === '') throw new RuntimeException($line . 'Bitte den Leistungserbringer für „' . ($name !== '' ? $name : $email) . '“ auswählen.');
+        $provider = $providers[mb_strtolower($providerName)] ?? null;
+        if (!$provider) throw new RuntimeException($line . 'Den Leistungserbringer „' . $providerName . '“ gibt es nicht. Bitte einen Namen aus der Auswahlliste verwenden.');
+        if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false) throw new RuntimeException($line . 'Die E-Mail-Adresse „' . $email . '“ ist ungültig.');
+        $lists[(int)$provider['id']] ??= ['name' => (string)$provider['name'], 'contacts' => []];
+        if ($name !== '' || $email !== '') $lists[(int)$provider['id']]['contacts'][] = ['name' => $name, 'email' => $email];
+    }
+    if (!$lists) throw new RuntimeException('Die Datei enthält keine Leistungserbringer.');
+    $count = 0;
+    foreach ($lists as $providerId => $entry) {
+        save_provider_rollout_contacts($db, $providerId, $entry['name'], $entry['contacts']);
+        $count += count($entry['contacts']);
+    }
+    return $count;
+}

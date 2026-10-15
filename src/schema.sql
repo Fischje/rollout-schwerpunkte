@@ -47,9 +47,15 @@ CREATE TABLE IF NOT EXISTS providers (
     name TEXT NOT NULL UNIQUE,
     type TEXT NOT NULL CHECK(type IN ('RV','FI','DSV')),
     sort_order INTEGER NOT NULL DEFAULT 0,
-    active INTEGER NOT NULL DEFAULT 1,
-    rollout_contact_name TEXT NOT NULL DEFAULT '',
-    rollout_contact_email TEXT NOT NULL DEFAULT ''
+    active INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS provider_rollout_contacts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    provider_id INTEGER NOT NULL REFERENCES providers(id) ON DELETE CASCADE,
+    name TEXT NOT NULL DEFAULT '',
+    email TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS provider_class_levels (

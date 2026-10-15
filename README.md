@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.65
+# Rollout-Schwerpunkte 0.1.66
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -42,7 +42,10 @@ Regionalverbände.
   Termin/Zeitraum relevant ist.
 - Je Projekt und Leistungserbringer wird genau ein Ansprechpartner gepflegt.
   Unabhängig davon hat jeder Leistungserbringer unter „Einstellungen →
-  Leistungserbringer“ einen festen Rollout-Ansprechpartner mit E-Mail-Adresse.
+  Leistungserbringer“ beliebig viele feste Rollout-Ansprechpartner mit
+  E-Mail-Adresse. Sie lassen sich auch per Excel pflegen (Export/Import →
+  Stammdaten „Rollout-Ansprechpartner“): Für jeden Leistungserbringer in der
+  Datei ersetzt sie die bisherige Liste, nicht enthaltene bleiben unverändert.
 - Regionalverbände erfassen bei B–D die Bereitstellungsart: selbst, anderer
   Regionalverband, externer Dienstleister oder keine Bereitstellung.
 
@@ -281,7 +284,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.65**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.66**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.
