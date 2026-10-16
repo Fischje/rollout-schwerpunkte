@@ -1,5 +1,9 @@
 # Änderungsverlauf
 
+## 0.1.70
+
+- E-Mail-Vorgabe nach Vorgabe des Fachbereichs neu formuliert: Abfrage der Unterstützungsleistungen des Regionalverbands, Bereitstellung nur für nicht zentral bereitgestellte Leistungen, Termin/Bemerkungen/Ansprechpartner „soweit möglich“. Ein unverändert gespeicherter Vorschlag aus 0.1.69 wird automatisch ersetzt
+
 ## 0.1.69
 
 - E-Mail-Vorgabe ergänzt: Die Regionalverbände können zusätzlich zu den vorgegebenen Unterstützungsleistungen je Projekt eigene Leistungen ergänzen (Zeilen „Neue Rolloutleistung“, mit Angabe der Rolloutobjekte). Ein unverändert gespeicherter Vorschlag aus 0.1.68 wird automatisch ersetzt
