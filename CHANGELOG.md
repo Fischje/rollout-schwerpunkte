@@ -1,5 +1,10 @@
 # Änderungsverlauf
 
+## 0.1.68
+
+- Korrektur E-Mail-Entwürfe: Der vorgeschlagene Text fragt jetzt die Unterstützungsleistungen und ihre Bereitstellung ab (nicht die Rolloutschwerpunkte) und beginnt mit „Sehr geehrte Kolleginnen und Kollegen“. Ein unverändert gespeicherter alter Vorschlag wird automatisch ersetzt
+- Neuer Button „Auf Vorgabe zurücksetzen“ für Betreff und Text
+
 ## 0.1.67
 
 - Neu: E-Mail-Entwürfe für Outlook zur RV-Abfrage (Export, Phase 3). Je Regionalverband eine .eml-Datei an alle Rollout-Ansprechpartner mit der RV-Datei im Anhang; Outlook öffnet sie per Doppelklick als ungesendeten Entwurf

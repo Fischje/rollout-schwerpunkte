@@ -754,9 +754,17 @@ function set_app_setting(PDO $db, string $key, string $value): void {
 /** Vorgabe für die Begleit-E-Mail zur RV-Abfrage; Platzhalter in geschweiften Klammern. */
 function rv_mail_defaults(): array {
     return [
-        'subject' => 'Abfrage Rolloutschwerpunkte {Jahr} – {Regionalverband}',
-        'body' => "Guten Tag {Ansprechpartner},\n\nanbei erhalten Sie die Excel-Datei zur Abfrage der Rolloutschwerpunkte {Jahr} für den {Regionalverband}.\n\nBitte ergänzen Sie die gelb markierten Felder – vor allem die Bereitstellungsart je Rolloutleistung – und senden Sie die Datei bis zum TT.MM.JJJJ an uns zurück.\n\nBei Fragen melden Sie sich gern.\n\nVielen Dank und viele Grüße",
+        'subject' => 'Abfrage der Unterstützungsleistungen und ihrer Bereitstellung – {Regionalverband}',
+        'body' => "Sehr geehrte Kolleginnen und Kollegen,\n\nanbei erhalten Sie die Excel-Datei mit den Unterstützungsleistungen für den {Regionalverband}. Wir bitten Sie, je Unterstützungsleistung anzugeben, wie Sie die Bereitstellung sicherstellen: selbst, über einen anderen Regionalverband, über einen externen Dienstleister oder gar nicht. Soweit relevant, ergänzen Sie bitte Termin bzw. Zeitraum, Bemerkungen und Ansprechpartner.\n\nBitte füllen Sie die gelb markierten Felder aus und senden Sie die Datei bis zum TT.MM.JJJJ an uns zurück.\n\nBei Fragen melden Sie sich gern.\n\nVielen Dank und viele Grüße",
     ];
+}
+
+/** Gespeicherter E-Mail-Text; der fachlich falsche Vorschlag aus 0.1.67 (Abfrage der Rolloutschwerpunkte) wird durch die aktuelle Vorgabe ersetzt. */
+function rv_mail_setting(PDO $db, string $field): string {
+    $outdated = ['subject' => 'Abfrage Rolloutschwerpunkte {Jahr} – {Regionalverband}', 'body' => "Guten Tag {Ansprechpartner},\n\nanbei erhalten Sie die Excel-Datei zur Abfrage der Rolloutschwerpunkte {Jahr} für den {Regionalverband}.\n\nBitte ergänzen Sie die gelb markierten Felder – vor allem die Bereitstellungsart je Rolloutleistung – und senden Sie die Datei bis zum TT.MM.JJJJ an uns zurück.\n\nBei Fragen melden Sie sich gern.\n\nVielen Dank und viele Grüße"];
+    $default = rv_mail_defaults()[$field];
+    $value = app_setting($db, 'rv_mail_' . $field, $default);
+    return $value === $outdated[$field] ? $default : $value;
 }
 
 /** „Nachname, Vorname“ wird für die Anrede zu „Vorname Nachname“; Funktionspostfächer bleiben wie sie sind. */
