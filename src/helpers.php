@@ -42,7 +42,7 @@ function format_date(?string $date, string $empty = '–'): string {
 function class_label(array $object): string {
     $parts = [];
     if (!empty($object['functional_class'])) $parts[] = 'Rolloutklasse Bankfachlich ' . $object['functional_class'];
-    $fiLabel=(string)($object['fi_class_label']??$object['technical_class']??'');
+    $fiLabel=(string)($object['fi_class_label']??'');
     $dsvLabel=(string)($object['dsv_class_label']??'');
     if ($fiLabel!=='') $parts[] = 'Rolloutklasse FI ' . $fiLabel;
     if ($dsvLabel!=='') $parts[] = 'Rolloutklasse DSV ' . $dsvLabel;
@@ -85,7 +85,7 @@ function enrich_rollout_objects(PDO $db,array $objects): array {
     if(!$objects)return [];$ids=array_map('intval',array_column($objects,'id'));$placeholders=implode(',',array_fill(0,count($ids),'?'));
     $stmt=$db->prepare("SELECT c.rollout_object_id,c.provider_type,c.class_code,l.class_label FROM rollout_object_provider_classes c JOIN provider_class_levels l ON l.provider_type=c.provider_type AND l.class_code=c.class_code WHERE c.rollout_object_id IN ($placeholders)");$stmt->execute($ids);$classes=[];
     foreach($stmt->fetchAll() as $row)$classes[(int)$row['rollout_object_id']][(string)$row['provider_type']]=['code'=>(string)$row['class_code'],'label'=>(string)$row['class_label']];
-    foreach($objects as &$object){$id=(int)$object['id'];$object['fi_class_code']=$classes[$id]['FI']['code']??((string)($object['technical_class']??''));$object['fi_class_label']=$classes[$id]['FI']['label']??((string)($object['technical_class']??''));$object['dsv_class_code']=$classes[$id]['DSV']['code']??'';$object['dsv_class_label']=$classes[$id]['DSV']['label']??'';}unset($object);return $objects;
+    foreach($objects as &$object){$id=(int)$object['id'];$object['fi_class_code']=$classes[$id]['FI']['code']??'';$object['fi_class_label']=$classes[$id]['FI']['label']??'';$object['dsv_class_code']=$classes[$id]['DSV']['code']??'';$object['dsv_class_label']=$classes[$id]['DSV']['label']??'';}unset($object);return $objects;
 }
 
 function enrich_support_services(PDO $db, array $services): array {
@@ -163,7 +163,7 @@ function project_rollout_class_scope(PDO $db, int $projectId): array {
     $dsv=[];
     foreach ($objects as $object) {
         $functional = array_values(array_unique(array_merge($functional, cumulative_functional_classes($object['functional_class'] ?? null))));
-        $technical = array_values(array_unique(array_merge($technical, cumulative_technical_classes($object['fi_class_code'] ?? $object['technical_class'] ?? null))));
+        $technical = array_values(array_unique(array_merge($technical, cumulative_technical_classes($object['fi_class_code'] ?? null))));
         $dsv=array_values(array_unique(array_merge($dsv,cumulative_dsv_classes($object['dsv_class_code']??null))));
     }
     $functional = array_values(array_intersect(['A','B','C','D'], $functional));
@@ -234,14 +234,14 @@ function service_applies_to_provider(array $service, array $provider, ?array $ob
     }
     if (!$codes) return false;
     if ($object === null) return true;
-    $applicable = $dimension === 'functional'?cumulative_functional_classes($object['functional_class']??null):($dimension==='dsv'?cumulative_dsv_classes($object['dsv_class_code']??null):cumulative_technical_classes($object['fi_class_code']??$object['technical_class']??null));
+    $applicable = $dimension === 'functional'?cumulative_functional_classes($object['functional_class']??null):($dimension==='dsv'?cumulative_dsv_classes($object['dsv_class_code']??null):cumulative_technical_classes($object['fi_class_code']??null));
     return (bool)array_intersect($codes, $applicable);
 }
 
 function service_applies_to_rollout_object(array $service, array $object): bool {
     $targets = (array)($service['provider_targets'] ?? []);
     $functional = cumulative_functional_classes($object['functional_class'] ?? null);
-    $technical = cumulative_technical_classes($object['fi_class_code'] ?? $object['technical_class'] ?? null);
+    $technical = cumulative_technical_classes($object['fi_class_code'] ?? null);
     $dsv=cumulative_dsv_classes($object['dsv_class_code']??null);
     foreach ((array)($service['class_codes'] ?? []) as $class) {
         [$dimension, $code] = array_pad(explode(':', (string)$class, 2), 2, '');
@@ -253,7 +253,7 @@ function service_applies_to_rollout_object(array $service, array $object): bool 
 }
 
 function prune_invalid_service_rollout_usage(PDO $db, ?int $projectId = null, ?int $serviceId = null): void {
-    $sql = 'SELECT r.id,u.project_id,u.support_service_id,u.rollout_object_id,r.functional_class,r.technical_class
+    $sql = 'SELECT r.id,u.project_id,u.support_service_id,u.rollout_object_id,r.functional_class
             FROM project_service_rollout_objects u
             JOIN rollout_objects r ON r.id=u.rollout_object_id WHERE 1=1';
     $params = [];
@@ -263,14 +263,6 @@ function prune_invalid_service_rollout_usage(PDO $db, ?int $projectId = null, ?i
     $serviceIds=array_values(array_unique(array_map('intval',array_column($rows,'support_service_id'))));$placeholders=implode(',',array_fill(0,count($serviceIds),'?'));$stmt=$db->prepare("SELECT * FROM support_services WHERE id IN ($placeholders)");$stmt->execute($serviceIds);$services=[];foreach(enrich_support_services($db,$stmt->fetchAll()) as $service)$services[(int)$service['id']]=$service;
     $delete=$db->prepare('DELETE FROM project_service_rollout_objects WHERE project_id=? AND support_service_id=? AND rollout_object_id=?');
     foreach($rows as $row)if(!isset($services[(int)$row['support_service_id']])||!service_applies_to_rollout_object($services[(int)$row['support_service_id']],$row))$delete->execute([(int)$row['project_id'],(int)$row['support_service_id'],(int)$row['rollout_object_id']]);
-}
-
-/**
- * Seit 0.1.50 gibt es kein „obligatorisch“ mehr: Ob die Regionalverbände eine Leistung erbringen,
- * regelt die Erbringung zentral/regional. Die Funktion bleibt für bestehende Aufrufer erhalten.
- */
-function service_is_mandatory_for_provider(array $service, array $provider): bool {
-    return false;
 }
 
 /** Nur bankfachliche Leistungen mit Zuständigkeit Regionalverbände können regional erbracht werden. */
@@ -326,97 +318,17 @@ function delivery_mode_label(string $mode, bool $automatic = false): string {
 }
 
 /**
- * Synchronisiert verpflichtende Leistungen. Verpflichtend sind Leistungen der
- * Basisklassen Bankfachlich A für Regionalverbände, FI 1 sowie die erste
- * Klasse des jeweils gepflegten DSV-Schemas
- * sowie vom Projektteam für alle jeweils zuständigen Leistungserbringer
- * vorgegebene zusätzliche Leistungen.
+ * „Immer enthalten“: Solche Leistungen werden jedem Rolloutobjekt zugeordnet, dessen
+ * Klasse zur Leistung passt (kumulativ), und lassen sich nicht abwählen.
+ * Zusätzliche Rolloutleistungen gelten nur innerhalb ihres Projekts.
  */
-function sync_mandatory_services(PDO $db, ?int $onlyObjectId = null, ?int $onlyProjectId = null): void
+function sync_always_included_services(PDO $db, ?int $onlyObjectId = null, ?int $onlyProjectId = null): void
 {
-    $providers = $db->query('SELECT id,type FROM providers WHERE active=1')->fetchAll();
     if ($onlyObjectId !== null && $onlyProjectId === null) {
         $stmt = $db->prepare('SELECT project_id FROM rollout_objects WHERE id=?');
         $stmt->execute([$onlyObjectId]);
         $onlyProjectId = (int)$stmt->fetchColumn() ?: null;
     }
-    $projectSql = 'SELECT id FROM projects';
-    $projectParams = [];
-    if ($onlyProjectId !== null) {
-        $projectSql .= ' WHERE id=?';
-        $projectParams[] = $onlyProjectId;
-    }
-    sync_always_included_services($db, $onlyProjectId);
-    $stmt = $db->prepare($projectSql);
-    $stmt->execute($projectParams);
-    $projects = array_map('intval', array_column($stmt->fetchAll(), 'id'));
-    $projectServiceStmt = $db->prepare(
-        "SELECT DISTINCT s.* FROM support_services s
-         JOIN project_services ps ON ps.support_service_id=s.id
-         WHERE s.active=1 AND ps.project_id=?
-           AND (s.mandatory_for_all=1 OR EXISTS (
-               SELECT 1 FROM support_service_classes b
-               WHERE b.support_service_id=s.id AND
-                     ((b.dimension='functional' AND b.class_code='A') OR
-                      (b.dimension='technical' AND b.class_code='1') OR
-                      (b.dimension='dsv' AND b.class_code='L1'))
-           ))"
-    );
-    $validProjects = [];
-    $servicesByProject = [];
-    foreach ($projects as $projectId) {
-        $projectServiceStmt->execute([$projectId]);
-        $servicesByProject[$projectId] = enrich_support_services($db, $projectServiceStmt->fetchAll());
-        $classScope = project_rollout_class_scope($db, $projectId);
-        $projectClassObject = [
-            'functional_class' => $classScope['functional'] ? $classScope['functional'][count($classScope['functional']) - 1] : null,
-            'technical_class' => $classScope['technical'] ? $classScope['technical'][count($classScope['technical']) - 1] : null,
-            'dsv_class_code'=>$classScope['dsv']?$classScope['dsv'][count($classScope['dsv'])-1]:null,
-        ];
-        foreach ($servicesByProject[$projectId] as $service) {
-            foreach ($providers as $provider) if(service_applies_to_provider($service,$provider,$projectClassObject)&&service_is_mandatory_for_provider($service,$provider)) {
-                $validProjects[$projectId . ':' . $service['id'] . ':' . $provider['id']] = true;
-            }
-        }
-    }
-    $existingSql = 'SELECT m.project_id,m.support_service_id,m.provider_id,m.note,m.schedule,m.delivery_mode,m.delivery_partner
-                    FROM project_support_matrix m WHERE m.automatic=1';
-    $existingParams = [];
-    if ($onlyProjectId !== null) {
-        $existingSql .= ' AND m.project_id=?';
-        $existingParams[] = $onlyProjectId;
-    }
-    $stmt = $db->prepare($existingSql);
-    $stmt->execute($existingParams);
-    $delete = $db->prepare('DELETE FROM project_support_matrix WHERE project_id=? AND support_service_id=? AND provider_id=?');
-    $preserve = $db->prepare('UPDATE project_support_matrix SET offered=0,automatic=0,updated_at=CURRENT_TIMESTAMP WHERE project_id=? AND support_service_id=? AND provider_id=?');
-    foreach ($stmt->fetchAll() as $row) {
-        $key = $row['project_id'] . ':' . $row['support_service_id'] . ':' . $row['provider_id'];
-        if (!isset($validProjects[$key])) {
-            $keyParams = [(int)$row['project_id'], (int)$row['support_service_id'], (int)$row['provider_id']];
-            $hasDetails = trim((string)$row['note']) !== '' || trim((string)$row['schedule']) !== '' || trim((string)$row['delivery_mode']) !== '' || trim((string)$row['delivery_partner']) !== '';
-            $hasDetails ? $preserve->execute($keyParams) : $delete->execute($keyParams);
-        }
-    }
-    $upsert = $db->prepare(
-        'INSERT INTO project_support_matrix(project_id,support_service_id,provider_id,offered,automatic,note)
-         VALUES(?,?,?,?,?,?) ON CONFLICT(project_id,support_service_id,provider_id)
-         DO UPDATE SET offered=1,automatic=1,updated_at=CURRENT_TIMESTAMP'
-    );
-    foreach ($projects as $projectId) {
-        foreach ($servicesByProject[$projectId] ?? [] as $service) {
-            foreach ($providers as $provider) if(isset($validProjects[$projectId . ':' . $service['id'] . ':' . $provider['id']])) $upsert->execute([$projectId, $service['id'], $provider['id'], 1, 1, '']);
-        }
-    }
-}
-
-/**
- * „Immer enthalten“: Solche Leistungen werden jedem Rolloutobjekt zugeordnet, dessen
- * Klasse zur Leistung passt (kumulativ), und lassen sich nicht abwählen.
- * Zusätzliche Rolloutleistungen gelten nur innerhalb ihres Projekts.
- */
-function sync_always_included_services(PDO $db, ?int $onlyProjectId = null): void
-{
     $services = enrich_support_services($db, $db->query('SELECT * FROM support_services WHERE active=1 AND always_included=1')->fetchAll());
     if (!$services) return;
     $sql = 'SELECT * FROM rollout_objects';
@@ -435,16 +347,6 @@ function sync_always_included_services(PDO $db, ?int $onlyProjectId = null): voi
             $usageInsert->execute([(int)$object['project_id'], (int)$service['id'], (int)$object['id']]);
         }
     }
-}
-
-function mandatory_project_pairs(PDO $db, int $projectId): array
-{
-    sync_mandatory_services($db, null, $projectId);
-    $stmt = $db->prepare('SELECT support_service_id,provider_id FROM project_support_matrix WHERE project_id=? AND automatic=1');
-    $stmt->execute([$projectId]);
-    $pairs = [];
-    foreach ($stmt->fetchAll() as $row) $pairs[(int)$row['support_service_id']][(int)$row['provider_id']] = true;
-    return $pairs;
 }
 
 /**
@@ -499,14 +401,13 @@ function service_provider_summary(array $service): string {
 
 /**
  * Stand der Leistungserbringung eines Leistungserbringers für eine Rolloutleistung.
- * Rückgabe: ['key'=>…, 'label'=>…, 'by'=>…]; key ∈ mandatory, self, other_rv, external, none, open, planned, not_planned, na.
+ * Rückgabe: ['key'=>…, 'label'=>…, 'by'=>…]; key ∈ self, other_rv, external, none, open, planned, not_planned, na.
  * Als Lücke gelten „open“ (keine Angabe) und „none“ (keine Bereitstellung).
  */
 function service_provision_status(array $service, array $provider, ?array $cell, bool $applicable): array {
     if (!$applicable) return ['key' => 'na', 'label' => 'Nicht relevant', 'by' => ''];
     $type = (string)($provider['type'] ?? '');
     $name = (string)($provider['name'] ?? '');
-    if (service_is_mandatory_for_provider($service, $provider)) return ['key' => 'mandatory', 'label' => 'Verbindlich (obligatorisch)', 'by' => $name];
     if ($type === 'RV' && !empty($service['requires_delivery_source'])) {
         $mode = normalize_delivery_mode((string)($cell['delivery_mode'] ?? ''));
         $partner = trim((string)($cell['delivery_partner'] ?? ''));
@@ -759,15 +660,9 @@ function rv_mail_defaults(): array {
     ];
 }
 
-/** Gespeicherter E-Mail-Text; unverändert gespeicherte ältere Vorschläge werden durch die aktuelle Vorgabe ersetzt. */
+/** Gespeicherter Betreff bzw. Text der Begleit-E-Mail, sonst die Vorgabe. */
 function rv_mail_setting(PDO $db, string $field): string {
-    $outdated = ['subject' => 'Abfrage Rolloutschwerpunkte {Jahr} – {Regionalverband}', 'body' => "Guten Tag {Ansprechpartner},\n\nanbei erhalten Sie die Excel-Datei zur Abfrage der Rolloutschwerpunkte {Jahr} für den {Regionalverband}.\n\nBitte ergänzen Sie die gelb markierten Felder – vor allem die Bereitstellungsart je Rolloutleistung – und senden Sie die Datei bis zum TT.MM.JJJJ an uns zurück.\n\nBei Fragen melden Sie sich gern.\n\nVielen Dank und viele Grüße"];
-    // Unverändert gespeicherte frühere Vorschläge gelten als veraltet (0.1.67: Rolloutschwerpunkte, 0.1.68: ohne Hinweis auf eigene Leistungen, 0.1.69: Vorfassung)
-    $outdated['body'] = [$outdated['body'], "Sehr geehrte Kolleginnen und Kollegen,\n\nanbei erhalten Sie die Excel-Datei mit den Unterstützungsleistungen für den {Regionalverband}. Wir bitten Sie, je Unterstützungsleistung anzugeben, wie Sie die Bereitstellung sicherstellen: selbst, über einen anderen Regionalverband, über einen externen Dienstleister oder gar nicht. Soweit relevant, ergänzen Sie bitte Termin bzw. Zeitraum, Bemerkungen und Ansprechpartner.\n\nZusätzlich zu den vorgegebenen Unterstützungsleistungen können Sie je Projekt eigene Unterstützungsleistungen ergänzen, die Sie für Ihre Sparkassen anbieten. Nutzen Sie dafür die Zeilen „Neue Rolloutleistung“ unter den vorgegebenen Leistungen des jeweiligen Projekts und geben Sie dort auch an, für welche Rolloutobjekte die Leistung gilt.\n\nBitte füllen Sie die gelb markierten Felder aus und senden Sie die Datei bis zum TT.MM.JJJJ an uns zurück.\n\nBei Fragen melden Sie sich gern.\n\nVielen Dank und viele Grüße", "Sehr geehrte Kolleginnen und Kollegen,\n\nanbei erhalten Sie die Excel-Datei mit den Unterstützungsleistungen für den {Regionalverband}. Wir bitten Sie, je Unterstützungsleistung anzugeben, wie Sie die Bereitstellung sicherstellen: selbst, über einen anderen Regionalverband, über einen externen Dienstleister oder gar nicht. Soweit relevant, ergänzen Sie bitte Termin bzw. Zeitraum, Bemerkungen und Ansprechpartner.\n\nBitte füllen Sie die gelb markierten Felder aus und senden Sie die Datei bis zum TT.MM.JJJJ an uns zurück.\n\nBei Fragen melden Sie sich gern.\n\nVielen Dank und viele Grüße"];
-    $outdated['subject'] = [$outdated['subject']];
-    $default = rv_mail_defaults()[$field];
-    $value = app_setting($db, 'rv_mail_' . $field, $default);
-    return in_array($value, $outdated[$field], true) ? $default : $value;
+    return app_setting($db, 'rv_mail_' . $field, rv_mail_defaults()[$field]);
 }
 
 /** „Nachname, Vorname“ wird für die Anrede zu „Vorname Nachname“; Funktionspostfächer bleiben wie sie sind. */

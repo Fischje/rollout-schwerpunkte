@@ -34,7 +34,6 @@ CREATE TABLE IF NOT EXISTS rollout_objects (
     start_date TEXT,
     end_date TEXT,
     functional_class TEXT CHECK(functional_class IN ('A','B','C','D') OR functional_class IS NULL),
-    technical_class INTEGER CHECK(technical_class IN (1,2,3) OR technical_class IS NULL),
     notes TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -87,7 +86,6 @@ CREATE TABLE IF NOT EXISTS support_services (
     description TEXT NOT NULL DEFAULT '',
     is_standard INTEGER NOT NULL DEFAULT 1,
     project_id INTEGER,
-    mandatory_for_all INTEGER NOT NULL DEFAULT 0,
     always_included INTEGER NOT NULL DEFAULT 0,
     default_delivery TEXT NOT NULL DEFAULT 'regional' CHECK(default_delivery IN ('regional','central')),
     schedule_relevant INTEGER NOT NULL DEFAULT 1,
@@ -95,7 +93,6 @@ CREATE TABLE IF NOT EXISTS support_services (
     sort_order INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CHECK(is_standard IN (0,1)),
-    CHECK(mandatory_for_all IN (0,1)),
     CHECK(always_included IN (0,1)),
     CHECK(schedule_relevant IN (0,1)),
     CHECK(active IN (0,1)),
@@ -148,7 +145,6 @@ CREATE TABLE IF NOT EXISTS project_support_matrix (
     support_service_id INTEGER NOT NULL,
     provider_id INTEGER NOT NULL,
     offered INTEGER NOT NULL DEFAULT 0,
-    automatic INTEGER NOT NULL DEFAULT 0,
     delivery_mode TEXT NOT NULL DEFAULT '' CHECK(delivery_mode IN ('','self','other_rv','external','none')),
     delivery_partner TEXT NOT NULL DEFAULT '',
     schedule TEXT NOT NULL DEFAULT '',
@@ -167,7 +163,6 @@ CREATE TABLE IF NOT EXISTS rollout_object_support_matrix (
     support_service_id INTEGER NOT NULL,
     provider_id INTEGER NOT NULL,
     offered INTEGER NOT NULL DEFAULT 0,
-    automatic INTEGER NOT NULL DEFAULT 0,
     schedule TEXT NOT NULL DEFAULT '',
     note TEXT NOT NULL DEFAULT '',
     origin TEXT,
@@ -177,28 +172,6 @@ CREATE TABLE IF NOT EXISTS rollout_object_support_matrix (
     FOREIGN KEY(project_id, support_service_id) REFERENCES project_services(project_id, support_service_id) ON DELETE CASCADE,
     FOREIGN KEY(project_id, rollout_object_id) REFERENCES rollout_objects(project_id, id) ON DELETE CASCADE,
     FOREIGN KEY(provider_id) REFERENCES providers(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS catalog_service_suggestions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    provider_type TEXT NOT NULL CHECK(provider_type IN ('RV','FI','DSV')),
-    source TEXT NOT NULL DEFAULT 'DSV' CHECK(source IN ('TPL','RV','FI','DSV')),
-    provider_id INTEGER,
-    project_id INTEGER NOT NULL,
-    rollout_object_id INTEGER,
-    proposed_name TEXT NOT NULL,
-    class_code TEXT NOT NULL,
-    offered INTEGER NOT NULL DEFAULT 0,
-    schedule TEXT NOT NULL DEFAULT '',
-    note TEXT NOT NULL DEFAULT '',
-    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','rejected')),
-    accepted_service_id INTEGER,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(provider_id) REFERENCES providers(id) ON DELETE CASCADE,
-    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    FOREIGN KEY(project_id, rollout_object_id) REFERENCES rollout_objects(project_id, id) ON DELETE CASCADE,
-    FOREIGN KEY(accepted_service_id) REFERENCES support_services(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS project_provider_contacts (
@@ -225,7 +198,6 @@ CREATE INDEX IF NOT EXISTS idx_service_provider_target ON support_service_provid
 CREATE INDEX IF NOT EXISTS idx_project_matrix_service ON project_support_matrix(support_service_id, provider_id);
 CREATE INDEX IF NOT EXISTS idx_object_provider_class ON rollout_object_provider_classes(provider_type, class_code, rollout_object_id);
 CREATE INDEX IF NOT EXISTS idx_object_matrix_service ON rollout_object_support_matrix(support_service_id, provider_id, rollout_object_id);
-CREATE INDEX IF NOT EXISTS idx_catalog_suggestion_status ON catalog_service_suggestions(status, provider_type, created_at);
 
 CREATE TRIGGER IF NOT EXISTS validate_project_service_insert
 BEFORE INSERT ON project_services
@@ -269,4 +241,4 @@ BEGIN
     SELECT RAISE(ABORT, 'Leistung ist diesem Leistungserbringer nicht zugeordnet');
 END;
 
-PRAGMA user_version = 23;
+PRAGMA user_version = 24;

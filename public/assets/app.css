@@ -41,12 +41,9 @@ body { background:var(--spark-light); color:var(--spark-dark); }
 .import-review-table td[data-compare] { min-width:15rem; max-width:24rem; white-space:normal; }
 .import-review-table.hide-details .detail-col { display:none; }
 .matrix-section th { position:static!important; background:#e7e8ea!important; padding:.85rem 1rem; font-size:.92rem; text-transform:none; letter-spacing:0; }
-.matrix-info { width:100%; }
 .matrix-full-width { width:100%; max-width:none; }
 .service-option { background:#fff; transition:border-color .15s ease,box-shadow .15s ease; }
 .service-option:hover { border-color:#adb5bd!important; box-shadow:0 2px 8px rgba(0,0,0,.05); }
-.service-selection-area + .service-selection-area { border-top:1px solid #dee2e6; padding-top:1.25rem; margin-top:.25rem; }
-.service-selection-area-technical { background:linear-gradient(90deg,rgba(52,120,179,.035),transparent 35%); margin-left:-1rem; margin-right:-1rem; padding-left:1rem; padding-right:1rem; }
 .service-selection-class-header { display:flex; flex-wrap:wrap; align-items:center; gap:.65rem; margin-bottom:.45rem; }
 .service-class-badges { display:flex; flex-wrap:wrap; align-items:center; gap:.3rem; }
 .class-color-legend { display:flex; flex-wrap:wrap; align-items:center; gap:.35rem; }
@@ -62,7 +59,6 @@ body { background:var(--spark-light); color:var(--spark-dark); }
 .stat-value { font-size:2rem; font-weight:700; }
 .login-shell { min-height:100vh; display:grid; place-items:center; background:linear-gradient(135deg,#fff 0%,#f3f3f3 70%,#ececec 100%); }
 .login-card { width:min(430px,calc(100vw - 2rem)); }
-.class-badge { min-width:2.1rem; }
 .catalog-editor { max-width:1000px; }
 .catalog-class-box { border:1px solid #dee2e6; border-radius:.5rem; padding:1rem; background:#fafafa; }
 .cumulative-class-inherited { color:#6c757d; cursor:not-allowed; }
@@ -90,7 +86,7 @@ body { background:var(--spark-light); color:var(--spark-dark); }
 .ov-self { background:#e3f4e8; color:#1d6b38; border-color:#b9e2c5; }
 .ov-other { background:#e6effa; color:#1f4f8f; border-color:#bcd2ef; }
 .ov-external { background:#fff1d9; color:#8a5a00; border-color:#f3d39a; }
-.ov-mandatory { background:#e9eaec; color:#3b3f45; border-color:#cfd2d6; }
+.ov-central { background:#e9eaec; color:#3b3f45; border-color:#cfd2d6; }
 .ov-open { background:#fff7cc; color:#7a5d00; border-color:#f1d75c; }
 .ov-none { background:#fde4e4; color:#9b1c1c; border-color:#f3b8b8; }
 .ov-na, .ov-empty { background:transparent; color:#b4b8bd; }

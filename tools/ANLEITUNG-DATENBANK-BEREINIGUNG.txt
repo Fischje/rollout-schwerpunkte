@@ -1,0 +1,57 @@
+DATENBANK-BEREINIGUNG FÜR VERSION 0.1.71 (SCHEMA 24)
+===================================================
+
+Ab Version 0.1.71 enthält die Datenbank keine Altlasten mehr (alte Spalten,
+die Tabelle der früheren Katalogvorschläge). Eine bestehende Datenbank wird
+dafür einmalig umgestellt. Bis dahin zeigt die Anwendung einen Wartungshinweis.
+
+VOR DEM EINSPIELEN (noch in Version 0.1.70)
+1. Seite „Einstellungen → Standard-Leistungskatalog“ öffnen.
+2. Steht dort der gelbe Hinweis „… Leistung(en) sind noch mehreren Anbietern
+   zugeordnet“, diese über „Jetzt aufräumen“ trennen.
+3. Gibt es dort die Liste „Offene Katalogvorschläge aus früheren Importen“,
+   jeden Vorschlag übernehmen oder ablehnen.
+   Sind beide nicht zu sehen, ist nichts zu tun.
+
+UMSTELLUNG
+4. Dafür sorgen, dass niemand die Anwendung nutzt.
+5. Die Dateien der Version 0.1.71 einspielen (config.php und data/ bleiben).
+6. Im Anwendungsordner einmal ausführen, am besten als Benutzer des Webservers
+   (z. B. www-data) oder als root:
+
+   php tools/datenbank-bereinigen.php
+
+   Ohne Angabe wird die Datenbank aus config.php verwendet. Ein anderer Pfad
+   kann angehängt werden, z. B.:  php tools/datenbank-bereinigen.php data/rollout.sqlite
+
+7. Nur bei der Meldung „Fertig: …“ die Anwendung wieder aufrufen.
+
+WAS DAS SKRIPT TUT
+- Es prüft Version (erwartet Schema 23) und Integrität der Datenbank.
+- Es bricht ohne Änderung ab, falls noch Punkt 2 oder 3 offen ist, und nennt
+  die betroffenen Einträge.
+- Es legt eine vollständige Sicherung neben der Datenbank an:
+  rollout.sqlite.vor-bereinigung-JJJJMMTT-HHMMSS
+- Es baut die Datenbank neu nach src/schema.sql auf und übernimmt alle Daten.
+  Entfernt werden: die Spalten technical_class (frühere FI-Klasse; ein noch
+  nicht übertragener Wert wird vorher als FI-Klasse übernommen),
+  mandatory_for_all („obligatorisch“), automatic, die Zwischenfelder
+  rollout_contact_name/-email aus 0.1.65, die Tabelle der früheren
+  Katalogvorschläge, unverändert gespeicherte veraltete E-Mail-Vorschläge
+  sowie verwaiste Datensätze.
+- Es prüft Fremdschlüssel und Integrität, übernimmt Rechte und Eigentümer der
+  bisherigen Datei und tauscht erst ganz am Ende die Datei aus.
+- Zum Schluss zeigt es die Zeilen je Tabelle (vorher → nachher) und alles,
+  was entfernt wurde.
+
+Ein zweiter Aufruf meldet nur „bereits bereinigt“. Bei einem Abbruch bleibt
+die bisherige Datenbank unverändert.
+
+ZURÜCK ZUR SICHERUNG (nur falls nötig)
+Anwendung anhalten, die Sicherung zurückkopieren und Version 0.1.70 einspielen:
+
+   rm -f data/rollout.sqlite-wal data/rollout.sqlite-shm
+   cp data/rollout.sqlite.vor-bereinigung-JJJJMMTT-HHMMSS data/rollout.sqlite
+
+Danach Eigentümer und Rechte wie bei der übrigen data/-Ablage setzen
+(z. B. chown www-data:www-data data/rollout.sqlite).

@@ -1,5 +1,14 @@
 # Änderungsverlauf
 
+## 0.1.71
+
+- Aufräumen: Altlasten in Code und Datenbank entfernt. Neues Datenbankschema 24; eine bestehende Datenbank wird einmalig mit `php tools/datenbank-bereinigen.php` umgestellt (mit Sicherung, Prüfung und Bericht). Bis dahin zeigt die Anwendung einen Wartungshinweis mit dem Befehl
+- Entfallen: die frühere FI-Klassenspalte an Rolloutobjekten (die FI-Klasse steht nur noch im Klassenschema), das Kennzeichen „obligatorisch“ samt der nie mehr wirksamen „Verbindlich“-Darstellung, die Tabelle und Liste der alten Katalogvorschläge sowie die Seite „Mehrfach zugeordnete Leistungen aufräumen“
+- Gesamtexport ohne die leere Spalte „Obligatorisch“; Katalogdateien verlangen die Spalten „Zentral erbracht“ und „Immer enthalten“
+- Ältere Dateiformate (Sammelspalten der frühen TPL-Dateien, Zeilentyp „Projektleistung“, alte Spaltennamen) werden nicht mehr gelesen; einfache Schreibvarianten für selbst erstellte Strukturdateien bleiben erlaubt
+- Beim Start laufen keine Migrationsroutinen mehr; die alten Update-Skripte 0.1.22 und 0.1.30 und die Datei `beispiel-import.csv` sind entfernt
+- Hinweistext im Katalog-Editor korrigiert: Jede Leistung gehört genau einem Katalog
+
 ## 0.1.70
 
 - E-Mail-Vorgabe nach Vorgabe des Fachbereichs neu formuliert: Abfrage der Unterstützungsleistungen des Regionalverbands, Bereitstellung nur für nicht zentral bereitgestellte Leistungen, Termin/Bemerkungen/Ansprechpartner „soweit möglich“. Ein unverändert gespeicherter Vorschlag aus 0.1.69 wird automatisch ersetzt

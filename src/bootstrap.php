@@ -49,5 +49,20 @@ require_once __DIR__ . '/Pptx.php';
 $config['app_version'] = app_version($config['app_version'] ?? null);
 
 $db = Database::connect($config['db_path']);
-Database::initialize($db, __DIR__ . '/schema.sql');
+try {
+    Database::initialize($db, __DIR__ . '/schema.sql');
+} catch (DatabaseVersionException $error) {
+    // Wartungshinweis statt Fehlerseite, bis die Datenbank einmalig umgestellt ist
+    http_response_code(503);
+    header('Content-Type: text/html; charset=utf-8');
+    $message = htmlspecialchars($error->getMessage(), ENT_QUOTES, 'UTF-8');
+    echo '<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wartung</title></head>'
+        . '<body style="font-family:system-ui,sans-serif;max-width:640px;margin:3rem auto;padding:0 1rem;line-height:1.5;color:#212529;background:#fff">'
+        . '<h1 style="font-size:1.4rem">Die Datenbank muss einmalig umgestellt werden</h1>'
+        . '<p>' . $message . '</p>'
+        . '<p>Bitte im Anwendungsordner auf dem Server ausführen, während niemand die Anwendung nutzt:</p>'
+        . '<pre style="background:#f1f3f5;padding:.75rem;border-radius:.375rem;overflow:auto">php tools/datenbank-bereinigen.php</pre>'
+        . '<p>Details stehen in <code>tools/ANLEITUNG-DATENBANK-BEREINIGUNG.txt</code>.</p></body></html>';
+    exit;
+}
 fi_class_registry(provider_class_levels($db, 'FI'));

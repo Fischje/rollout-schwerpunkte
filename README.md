@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.70
+# Rollout-Schwerpunkte 0.1.71
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -8,7 +8,7 @@ Regionalverbände.
 
 - Unterstützungsleistungen werden ausschließlich Projekten zugeordnet.
 - Im Projekt wird separat angehakt, bei welchen Rolloutobjekten eine
-  Projektleistung genutzt wird.
+  Rolloutleistung genutzt wird.
 - Im zentralen Standardkatalog gibt es keine Projekt- oder
   Rolloutobjekt-Ebene mehr.
 - Zusätzliche, nicht standardisierte Leistungen gehören genau zu einem Projekt.
@@ -25,10 +25,7 @@ Regionalverbände.
 - Es gibt drei getrennte Kataloge: Bankfachlich (Regionalverbände bzw.
   Projekt), FI und DSV. Jede Leistung gehört genau einem Katalog; derselbe Name
   darf in verschiedenen Katalogen vorkommen (z. B. „Kickoff“ bankfachlich und
-  bei der FI), innerhalb eines Katalogs nicht. Ältere, mehreren Anbietern
-  zugeordnete Leistungen werden auf der Seite „Mehrfach zugeordnete Leistungen
-  aufräumen“ (Hinweis im Katalog) je Eintrag aufgeteilt oder auf einen Anbieter
-  festgelegt; der Importassistent zeigt die Änderungen vorher an.
+  bei der FI), innerhalb eines Katalogs nicht.
 - Erbringung: Bankfachliche Leistungen werden regional (durch die
   Regionalverbände, die dazu befragt werden) oder zentral (durch das Projekt)
   erbracht. Der Katalog gibt die Erbringung vor; je Rolloutobjekt kann sie in
@@ -105,7 +102,7 @@ Personennamen „zusammen“), `{Jahr}` (Folgejahr) und `{Datum}`.
    zu FI beziehungsweise DSV erfolgt über die Datei und ist nicht als sichtbare
    Spalte erforderlich.
 3. Die Regionalverbände erhalten danach getrennte Dateien. Die zuvor
-   importierten FI-/DSV-Angaben werden je Projektleistung zur Information
+   importierten FI-/DSV-Angaben werden je Rolloutleistung zur Information
    angezeigt.
 
 Alle Arbeitsblätter sind ungeschützt. Gelbe Zellen kennzeichnen die vorgesehenen
@@ -117,7 +114,7 @@ strukturierten Leistungskatalog. Projektleitung und TPL Rollout werden nicht exp
 in diesem Ablauf nicht verändert werden.
 Neue oder unklare Leistungen werden nicht ungeprüft angelegt: Beim Rückimport
 fragt der Importassistent, ob eine bestehende Leistung zugeordnet, eine neue
-nicht standardisierte Projektleistung angelegt oder der Wert ausgelassen werden
+nicht standardisierte Leistung für das Projekt angelegt oder der Wert ausgelassen werden
 soll.
 
 Im Prüfschritt zeigt die Spalte „Bisher → neu“ je Zeile den aktuellen Datenbankwert
@@ -147,7 +144,8 @@ als getrennte Excel-Dateien exportiert, bearbeitet und wieder importiert werden.
 Jede Klasse besitzt eine eigene Ja-/Nein-Spalte. Die wirksame kumulative
 Verfügbarkeit wird dabei vollständig ausgeschrieben: Eine Leistung ab A steht
 auch in B, C und D auf `Ja`, eine Leistung ab 1 auch in 2 und 3. Beim Rückimport
-wird die niedrigste mit `Ja` markierte Ausgangsklasse gespeichert. Weitere Spalten steuern Obligatorik,
+wird die niedrigste mit `Ja` markierte Ausgangsklasse gespeichert. Weitere Spalten steuern die Erbringung
+(„Zentral erbracht“), „Immer enthalten“,
 Terminrelevanz und Aktivstatus; freie Zeilen dienen zum Anlegen neuer
 Katalogleistungen. Klasse 0 erscheint absichtlich nicht in den
 Katalogpflegedateien, weil ihr keine Leistung zugeordnet werden darf.
@@ -161,7 +159,7 @@ Rückimport sollten `max_file_uploads`, `upload_max_filesize` und
 `post_max_size` ausreichend groß konfiguriert sein.
 
 Das ZIP enthält keine Datenbank. Eine Neuinstallation erzeugt direkt das
-konsolidierte Schema 23 und fragt anschließend nach dem Administrationskonto.
+aktuelle Schema 24 und fragt anschließend nach dem Administrationskonto.
 Das Passwort benötigt mindestens neun beliebige Zeichen.
 
 Beispiel für Caddy:
@@ -177,27 +175,26 @@ rollout.example.de {
 
 ## Update einer bestehenden Datenbank
 
-Vor dem ersten Aufruf von Version 0.1.30 muss eine vorhandene Datenbank aus
-Version 0.1.22 bis 0.1.29 einmalig aktualisiert werden:
+Ab Version 0.1.71 gilt Schema 24 ohne Altlasten. Eine Datenbank aus Version
+0.1.30 bis 0.1.70 (Schema 23) wird einmalig umgestellt, während niemand die
+Anwendung nutzt:
 
 ```bash
 cd /var/www/rollout-schwerpunkte
-php tools/update-database-0.1.30.php data/rollout.sqlite
+php tools/datenbank-bereinigen.php
 ```
 
-Währenddessen darf die Webanwendung nicht verwendet werden. Das Skript legt
-automatisch eine Sicherung `rollout.sqlite.backup-before-0.1.30-...` an,
-trennt die FI- und DSV-Klassen, überführt vorhandene Rückmeldungen in die
-objektbezogene Struktur und prüft anschließend Fremdschlüssel und Integrität.
-Details stehen in `tools/ANLEITUNG-DATENBANK-UPDATE-0.1.30.txt`.
+Vorher müssen in 0.1.70 offene Katalogvorschläge und mehrfach zugeordnete
+Leistungen erledigt sein; das Skript prüft das und bricht sonst ohne Änderung
+ab. Es legt eine Sicherung `rollout.sqlite.vor-bereinigung-…` an, baut die
+Datenbank nach `src/schema.sql` neu auf, übernimmt alle Daten, entfernt alte
+Spalten und Tabellen sowie verwaiste Datensätze, prüft Fremdschlüssel und
+Integrität und meldet die Zeilen je Tabelle. Details stehen in
+`tools/ANLEITUNG-DATENBANK-BEREINIGUNG.txt`.
 
-Eine Datenbank aus Version 0.1.20 oder 0.1.21 wird zuerst mit dem weiterhin
-beiliegenden Skript 0.1.22 auf Schema 22 und danach mit dem Skript 0.1.30 auf
-Schema 23 aktualisiert.
-
-Der normale Anwendungsstart enthält keine historischen Migrationsroutinen. Eine
-Datenbank mit einer anderen Schema-Version wird mit einem klaren Hinweis auf das
-Wartungsskript abgewiesen.
+Der normale Anwendungsstart enthält keine Migrationsroutinen. Eine Datenbank mit
+einer anderen Schema-Version wird mit einem Wartungshinweis abgewiesen, der den
+Befehl nennt.
 
 ## Übersicht Leistungserbringung
 
@@ -264,17 +261,17 @@ eine solche Dopplung durch einen Import, weist die Importbestätigung darauf hin
 
 Die Anwendung erkennt insbesondere:
 
-- Projekt und Datensatz (`Projekt`, `Rolloutobjekt` oder `Projektleistung`)
+- Projekt und Datensatz (`Projekt`, `Rolloutobjekt`, `Rolloutleistung` oder
+  `Neue Rolloutleistung`)
 - Rolloutobjekt, Beginn, Ende sowie Bankfachlich-, FI- und DSV-Klasse
 - Unterstützungsleistung sowie ihre Leistungsklassen
 - `Genutzt für Rolloutobjekte` mit einer Bezeichnung je Zeile
 - Leistungserbringer, Ansprechpartner und Telefonnummer
-- Angebot, obligatorische Kennzeichnung, Bereitstellungsart, Partner,
-  Termin/Zeitraum und Bemerkung
+- Angebot, Bereitstellungsart, Partner, Termin/Zeitraum und Bemerkung
 
-Aus Gründen der Abwärtskompatibilität erkennt der Importassistent weiterhin die
-alten Spaltenbezeichnungen `Ebene` und `technische Rolloutklasse`. Neu erzeugte
-Dateien verwenden ausschließlich die heutigen Begriffe.
+Gelesen werden die Dateien der aktuellen Version; ältere Dateiformate werden
+abgelehnt. Für selbst erstellte Strukturdateien sind einfache Schreibvarianten
+erlaubt (z. B. „ue“ statt „ü“, `Ende`, `Termin`, `Telefon`).
 
 ## Darstellung und Sortierung
 
@@ -299,7 +296,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.70**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.71**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.
