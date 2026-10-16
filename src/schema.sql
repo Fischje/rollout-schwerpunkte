@@ -58,6 +58,11 @@ CREATE TABLE IF NOT EXISTS provider_rollout_contacts (
     sort_order INTEGER NOT NULL DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL DEFAULT ''
+);
+
 CREATE TABLE IF NOT EXISTS provider_class_levels (
     provider_type TEXT NOT NULL CHECK(provider_type IN ('FI','DSV')),
     class_code TEXT NOT NULL,

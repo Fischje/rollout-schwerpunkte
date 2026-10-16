@@ -42,6 +42,7 @@ final class Database
             self::ensureOriginColumns($db);
             self::ensureStrategicFields($db);
             self::ensureProviderRolloutContacts($db);
+            $db->exec("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '')");
             return;
         }
 

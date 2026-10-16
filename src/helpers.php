@@ -738,3 +738,83 @@ function import_provider_contacts(PDO $db, array $rows): int {
     }
     return $count;
 }
+
+/** Einfache Einstellungen (z. B. der zuletzt verwendete E-Mail-Text). */
+function app_setting(PDO $db, string $key, string $default = ''): string {
+    $stmt = $db->prepare('SELECT value FROM app_settings WHERE key=?');
+    $stmt->execute([$key]);
+    $value = $stmt->fetchColumn();
+    return $value === false ? $default : (string)$value;
+}
+
+function set_app_setting(PDO $db, string $key, string $value): void {
+    $db->prepare('INSERT INTO app_settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value')->execute([$key, $value]);
+}
+
+/** Vorgabe für die Begleit-E-Mail zur RV-Abfrage; Platzhalter in geschweiften Klammern. */
+function rv_mail_defaults(): array {
+    return [
+        'subject' => 'Abfrage Rolloutschwerpunkte {Jahr} – {Regionalverband}',
+        'body' => "Guten Tag {Ansprechpartner},\n\nanbei erhalten Sie die Excel-Datei zur Abfrage der Rolloutschwerpunkte {Jahr} für den {Regionalverband}.\n\nBitte ergänzen Sie die gelb markierten Felder – vor allem die Bereitstellungsart je Rolloutleistung – und senden Sie die Datei bis zum TT.MM.JJJJ an uns zurück.\n\nBei Fragen melden Sie sich gern.\n\nVielen Dank und viele Grüße",
+    ];
+}
+
+/** „Nachname, Vorname“ wird für die Anrede zu „Vorname Nachname“; Funktionspostfächer bleiben wie sie sind. */
+function contact_display_name(string $name): string {
+    $parts = array_map('trim', explode(',', $name));
+    return count($parts) === 2 && $parts[0] !== '' && $parts[1] !== '' ? $parts[1] . ' ' . $parts[0] : trim($name);
+}
+
+function mail_header_word(string $text): string {
+    return preg_match('/[^\x20-\x7E]/', $text) ? '=?UTF-8?B?' . base64_encode($text) . '?=' : $text;
+}
+
+/** Ungesendeter E-Mail-Entwurf (.eml, X-Unsent) mit Text- und HTML-Teil sowie Anhängen; Outlook öffnet ihn zum Bearbeiten und Senden. */
+function build_draft_eml(array $recipients, string $subject, string $body, array $attachments): string {
+    $to = [];
+    foreach ($recipients as $recipient) {
+        $email = trim((string)($recipient['email'] ?? ''));
+        if ($email === '') continue;
+        $name = trim((string)($recipient['name'] ?? ''));
+        $to[] = $name === '' ? '<' . $email . '>' : (preg_match('/[^\x20-\x7E]/', $name) ? mail_header_word($name) : '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $name) . '"') . ' <' . $email . '>';
+    }
+    $mixed = 'mixed_' . bin2hex(random_bytes(8));
+    $alt = 'alt_' . bin2hex(random_bytes(8));
+    $body = str_replace(["\r\n", "\r"], "\n", $body);
+    $html = '<html><head><meta charset="utf-8"></head><body style="font-family:Calibri,Arial,sans-serif;font-size:11pt">' . nl2br(htmlspecialchars($body, ENT_QUOTES, 'UTF-8')) . '</body></html>';
+    $chunk = static fn(string $data): string => rtrim(chunk_split(base64_encode($data), 76, "\r\n"));
+    $lines = [
+        'X-Unsent: 1',
+        'To: ' . implode(', ', $to),
+        'Subject: ' . mail_header_word($subject),
+        'MIME-Version: 1.0',
+        'Content-Type: multipart/mixed; boundary="' . $mixed . '"',
+        '',
+        '--' . $mixed,
+        'Content-Type: multipart/alternative; boundary="' . $alt . '"',
+        '',
+        '--' . $alt,
+        'Content-Type: text/plain; charset=UTF-8',
+        'Content-Transfer-Encoding: base64',
+        '',
+        $chunk(str_replace("\n", "\r\n", $body)),
+        '--' . $alt,
+        'Content-Type: text/html; charset=UTF-8',
+        'Content-Transfer-Encoding: base64',
+        '',
+        $chunk($html),
+        '--' . $alt . '--',
+    ];
+    foreach ($attachments as $filename => $data) {
+        $encoded = mail_header_word((string)$filename);
+        $lines[] = '--' . $mixed;
+        $lines[] = 'Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; name="' . $encoded . '"';
+        $lines[] = 'Content-Disposition: attachment; filename="' . $encoded . '"';
+        $lines[] = 'Content-Transfer-Encoding: base64';
+        $lines[] = '';
+        $lines[] = $chunk((string)$data);
+    }
+    $lines[] = '--' . $mixed . '--';
+    $lines[] = '';
+    return implode("\r\n", $lines);
+}

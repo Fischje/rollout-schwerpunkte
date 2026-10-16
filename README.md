@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.66
+# Rollout-Schwerpunkte 0.1.67
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -63,6 +63,17 @@ Regionalverbände.
   Präsentation“, darunter jeweils die Stammdaten (Leistungskataloge). Beim
   Import hat jede Phase ein eigenes Upload-Feld; die Importart ergibt sich
   daraus.
+
+## E-Mail-Entwürfe für die RV-Abfrage
+
+Unter „Import/Export → Export“, Phase 3, entstehen je Regionalverband
+E-Mail-Entwürfe im Format `.eml` (Kennzeichen `X-Unsent`). Outlook öffnet sie
+per Doppelklick als ungesendete E-Mail. Empfänger sind alle
+Rollout-Ansprechpartner des Regionalverbands mit E-Mail-Adresse, im Anhang
+liegt die RV-Abfragedatei. Betreff und Text sind vorher bearbeitbar und werden
+gespeichert (Tabelle `app_settings`). Platzhalter: `{Regionalverband}`,
+`{Ansprechpartner}` (Anrede „Vorname Nachname“, mehrere mit „und“; ohne
+Personennamen „zusammen“), `{Jahr}` (Folgejahr) und `{Datum}`.
 
 ## Dreiphasiger Excel-Ablauf
 
@@ -284,7 +295,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.66**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.67**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.

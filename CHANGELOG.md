@@ -1,5 +1,11 @@
 # Änderungsverlauf
 
+## 0.1.67
+
+- Neu: E-Mail-Entwürfe für Outlook zur RV-Abfrage (Export, Phase 3). Je Regionalverband eine .eml-Datei an alle Rollout-Ansprechpartner mit der RV-Datei im Anhang; Outlook öffnet sie per Doppelklick als ungesendeten Entwurf
+- Betreff und Text sind vorher in einem Eingabefeld bearbeitbar und werden gespeichert; Platzhalter {Regionalverband}, {Ansprechpartner}, {Jahr} und {Datum}
+- Download einzeln je Regionalverband oder alle als ZIP; die Zahl auf den Buttons zeigt die Empfänger, Regionalverbände ohne E-Mail-Adresse sind gelb markiert
+
 ## 0.1.66
 
 - Rollout-Ansprechpartner: je Leistungserbringer jetzt beliebig viele Personen mit E-Mail-Adresse („+ weiterer Ansprechpartner“, × zum Entfernen). Ein in 0.1.65 eingetragener Ansprechpartner wird automatisch übernommen
