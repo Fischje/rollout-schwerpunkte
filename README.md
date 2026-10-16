@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.68
+# Rollout-Schwerpunkte 0.1.69
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -72,8 +72,9 @@ per Doppelklick als ungesendete E-Mail. Empfänger sind alle
 Rollout-Ansprechpartner des Regionalverbands mit E-Mail-Adresse, im Anhang
 liegt die RV-Abfragedatei. Betreff und Text sind vorher bearbeitbar und werden
 gespeichert (Tabelle `app_settings`) und lassen sich auf die Vorgabe zurücksetzen.
-Die Vorgabe fragt die Unterstützungsleistungen und ihre Bereitstellung ab und
-beginnt mit „Sehr geehrte Kolleginnen und Kollegen“. Platzhalter: `{Regionalverband}`,
+Die Vorgabe fragt die Unterstützungsleistungen und ihre Bereitstellung ab,
+weist auf das Ergänzen eigener Leistungen in den Zeilen „Neue Rolloutleistung“
+hin und beginnt mit „Sehr geehrte Kolleginnen und Kollegen“. Platzhalter: `{Regionalverband}`,
 `{Ansprechpartner}` (Anrede „Vorname Nachname“, mehrere mit „und“; ohne
 Personennamen „zusammen“), `{Jahr}` (Folgejahr) und `{Datum}`.
 
@@ -297,7 +298,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.68**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.69**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.

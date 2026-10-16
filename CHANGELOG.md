@@ -1,5 +1,9 @@
 # Änderungsverlauf
 
+## 0.1.69
+
+- E-Mail-Vorgabe ergänzt: Die Regionalverbände können zusätzlich zu den vorgegebenen Unterstützungsleistungen je Projekt eigene Leistungen ergänzen (Zeilen „Neue Rolloutleistung“, mit Angabe der Rolloutobjekte). Ein unverändert gespeicherter Vorschlag aus 0.1.68 wird automatisch ersetzt
+
 ## 0.1.68
 
 - Korrektur E-Mail-Entwürfe: Der vorgeschlagene Text fragt jetzt die Unterstützungsleistungen und ihre Bereitstellung ab (nicht die Rolloutschwerpunkte) und beginnt mit „Sehr geehrte Kolleginnen und Kollegen“. Ein unverändert gespeicherter alter Vorschlag wird automatisch ersetzt
