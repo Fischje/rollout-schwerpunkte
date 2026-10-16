@@ -1,5 +1,10 @@
 # Änderungsverlauf
 
+## 0.1.72
+
+- Die Pflege der strategischen Themenfelder ist von der Seite „Projektanpassung“ in die Einstellungen umgezogen (neuer Reiter „Strategische Themenfelder“). Je Themenfeld steht dort, wie viele Projekte ihm zugeordnet sind, darunter die Zahl der noch nicht zugeordneten Projekte
+- Das Projektformular verlinkt beim Feld „Strategisches Themenfeld“ direkt auf den neuen Reiter
+
 ## 0.1.71
 
 - Aufräumen: Altlasten in Code und Datenbank entfernt. Neues Datenbankschema 24; eine bestehende Datenbank wird einmalig mit `php tools/datenbank-bereinigen.php` umgestellt (mit Sicherung, Prüfung und Bericht). Bis dahin zeigt die Anwendung einen Wartungshinweis mit dem Befehl

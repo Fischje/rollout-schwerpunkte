@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.71
+# Rollout-Schwerpunkte 0.1.72
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -52,8 +52,9 @@ Regionalverbände.
 - **Projektanpassung**: Projektliste mit Rolloutobjekten, Projektformular und
   Projektmatrix.
 - **Einstellungen** mit den Reitern Standard-Leistungskatalog,
-  Leistungserbringer (Abschnitte „Regionalverbände“ und „Dienstleister“) und
-  Klassenschema (FI, DSV, Kombinationsmöglichkeiten).
+  Leistungserbringer (Abschnitte „Regionalverbände“ und „Dienstleister“),
+  Klassenschema (FI, DSV, Kombinationsmöglichkeiten) und Strategische
+  Themenfelder (Namen der neun Felder, Anzahl zugeordneter Projekte).
 - **Import/Export** mit den Reitern Export und Import. Beide sind gleich
   gegliedert: Phase 1 TPL/PL, Phase 2 FI und DSV (auslaufend), Phase 3
   Regionalverbände, beim Export zusätzlich Phase 4 „Auswertung und
@@ -229,8 +230,8 @@ und -Ende im Format der Vorlage
 `resources/powerpoint/rolloutschwerpunkte-tabelle-vorlage.pptx` (Musterfolie 2,
 Layout „Text-/Bild-Folie #9“) mit Themenfeld-Spalte, Subline „nach strategischen
 Themenfeldern“ und den neun Themenfeld-Bildern. Sortiert wird nach dem
-strategischen Themenfeld des Projekts (im Projektformular; die neun Namen unten
-auf der Seite „Projektanpassung“ pflegbar), dann nach Projektname. Titel und Fußzeile
+strategischen Themenfeld des Projekts (im Projektformular; die neun Namen unter
+„Einstellungen → Strategische Themenfelder“ pflegbar), dann nach Projektname. Titel und Fußzeile
 sind vor dem Export änderbar; die Tabelle endet 2 cm über dem unteren Rand, die
 Projekte werden gleichmäßig auf die Folien verteilt.
 
@@ -296,7 +297,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.71**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.72**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.
