@@ -139,3 +139,10 @@ body { background:var(--spark-light); color:var(--spark-dark); }
 .phase-card-ending { border-left:4px solid #ffc107; }
 .phase-list .phase-card { scroll-margin-top:80px; }
 .provider-table input.form-control[readonly] { background:#f8f9fa; }
+.navbar-nav .nav-link { white-space:nowrap; }
+.rv-view-table { table-layout:fixed; min-width:960px; font-size:.86rem; }
+.rv-view-table th:nth-child(1) { width:30%; }
+.rv-view-table th:nth-child(2) { width:14%; }
+.rv-view-table th:nth-child(3) { width:19%; }
+.rv-view-table th:nth-child(4) { width:15%; }
+.rv-status-table td { min-width:7rem; }

@@ -1,5 +1,13 @@
 # Änderungsverlauf
 
+## 0.1.73
+
+- Neu: „Stand der Rückmeldungen der Regionalverbände“ unter Import (Phase 3). Je Regionalverband Häkchen „übernommen“, Datum, „Erhalten von“, Weg und Bemerkung. Der Import einer RV-Rückmeldedatei setzt Häkchen, Datum und Weg automatisch; „Liste zurücksetzen“ leert die Liste für eine neue Abfragerunde
+- Neu: Menüpunkt „RV-Sicht“. Je Regionalverband alle Rolloutleistungen, zu denen er gefragt wird, über alle Projekte in einer Tabelle: Bereitstellungsart (mit anderem RV bzw. externem Dienstleister), Termin, Bemerkung und Ansprechpartner je Projekt – für Antworten aus Terminen oder pauschale Antworten ohne Excel-Datei. Gespeichert wird wie beim Import der RV-Datei, mit Herkunftsvermerk „RV-Sicht <RV>“
+- In der RV-Sicht lassen sich je Projekt weitere Leistungen ergänzen: eine passende Katalogleistung oder eine eigene, frei beschriebene Leistung, jeweils mit Auswahl der Rolloutobjekte (keins angehakt = alle passenden)
+- RV-Sicht: Filter nach Projekt und „nur offene“, „Pauschale Antwort“ füllt alle angezeigten offenen Leistungen auf einmal; beim Speichern kann die Rückmeldung direkt im Stand der Rückmeldungen vermerkt werden
+- Keine Änderung am Datenbankschema (der Stand der Rückmeldungen liegt in den Einstellungen der Anwendung)
+
 ## 0.1.72
 
 - Die Pflege der strategischen Themenfelder ist von der Seite „Projektanpassung“ in die Einstellungen umgezogen (neuer Reiter „Strategische Themenfelder“). Je Themenfeld steht dort, wie viele Projekte ihm zugeordnet sind, darunter die Zahl der noch nicht zugeordneten Projekte

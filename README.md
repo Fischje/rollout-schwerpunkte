@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.72
+# Rollout-Schwerpunkte 0.1.73
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -51,6 +51,8 @@ Regionalverbände.
 - **Übersicht** (Startseite, auch über das Logo): Leistungserbringung je Projekt.
 - **Projektanpassung**: Projektliste mit Rolloutobjekten, Projektformular und
   Projektmatrix.
+- **RV-Sicht**: je Regionalverband alle Rolloutleistungen, zu denen er gefragt
+  wird, über alle Projekte (siehe „RV-Sicht und Stand der Rückmeldungen“).
 - **Einstellungen** mit den Reitern Standard-Leistungskatalog,
   Leistungserbringer (Abschnitte „Regionalverbände“ und „Dienstleister“),
   Klassenschema (FI, DSV, Kombinationsmöglichkeiten) und Strategische
@@ -76,6 +78,26 @@ weist auf das Ergänzen eigener Leistungen in den Zeilen „Neue Rolloutleistung
 hin und beginnt mit „Sehr geehrte Kolleginnen und Kollegen“. Platzhalter: `{Regionalverband}`,
 `{Ansprechpartner}` (Anrede „Vorname Nachname“, mehrere mit „und“; ohne
 Personennamen „zusammen“), `{Jahr}` (Folgejahr) und `{Datum}`.
+
+## RV-Sicht und Stand der Rückmeldungen
+
+Die **RV-Sicht** zeigt für einen Regionalverband dieselben Eingabezeilen wie seine
+RV-Datei, aber über alle Projekte auf einer Seite: Bereitstellungsart, anderer
+RV bzw. externer Dienstleister, Termin, Bemerkung und Ansprechpartner je
+Projekt. Gedacht für Antworten aus Terminen oder pauschale Antworten, ohne die
+Excel-Datei zu befüllen. Gespeichert wird in dieselben Tabellen wie beim Import
+der RV-Datei („letzter gilt“, Herkunftsvermerk „RV-Sicht <RV>“). Je Projekt
+lassen sich weitere Leistungen ergänzen – eine passende Katalogleistung oder
+eine eigene Leistung mit Beschreibung, jeweils für die angehakten
+Rolloutobjekte (keins angehakt = alle passenden). Eine eigene Leistung erhält
+die niedrigste Klasse der gewählten Rolloutobjekte. „Pauschale Antwort“ füllt
+alle angezeigten, noch offenen Leistungen auf einmal.
+
+Der **Stand der Rückmeldungen** (Import, Phase 3) hält je Regionalverband fest,
+ob seine Rückmeldung übernommen ist: Häkchen, Datum, erhalten von, Weg,
+Bemerkung. Der Import einer RV-Rückmeldedatei und auf Wunsch das Speichern der
+RV-Sicht setzen den Eintrag automatisch. Die Liste liegt in `app_settings`
+(Schlüssel `rv_import_status`); das Datenbankschema bleibt unverändert.
 
 ## Dreiphasiger Excel-Ablauf
 
@@ -297,7 +319,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.72**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.73**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.

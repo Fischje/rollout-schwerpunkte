@@ -46,6 +46,7 @@ require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/Xlsx.php';
 require_once __DIR__ . '/Pptx.php';
+require_once __DIR__ . '/rv_rueckmeldungen.php';
 $config['app_version'] = app_version($config['app_version'] ?? null);
 
 $db = Database::connect($config['db_path']);
