@@ -146,3 +146,8 @@ body { background:var(--spark-light); color:var(--spark-dark); }
 .rv-view-table th:nth-child(3) { width:19%; }
 .rv-view-table th:nth-child(4) { width:15%; }
 .rv-status-table td { min-width:7rem; }
+/* Importassistent: Projektüberschriften über den Zeilen eines Projekts */
+.import-project-group > td { background-color:#dfe3ea!important; border-top:2px solid #6c757d; padding:.35rem .5rem; }
+.import-project-group-label { position:sticky; left:.5rem; display:inline-block; }
+.import-review-table td[data-used-picker] { min-width:12rem; }
+.import-review-table td[data-used-picker] .form-check { min-height:0; }

@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.73
+# Rollout-Schwerpunkte 0.1.74
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -289,6 +289,14 @@ Die Anwendung erkennt insbesondere:
 - Rolloutobjekt, Beginn, Ende sowie Bankfachlich-, FI- und DSV-Klasse
 - Unterstützungsleistung sowie ihre Leistungsklassen
 - `Genutzt für Rolloutobjekte` mit einer Bezeichnung je Zeile
+  (in Zeilen „Neue Rolloutleistung“ der RV-Datei auch `Alle Rolloutobjekte`;
+  der Importassistent zeigt dafür eine Auswahl je Projekt. Eine dabei neu
+  angelegte oder projekteigene Leistung wird in ihrer Klasse Bankfachlich so weit
+  gesenkt, dass sie zu allen gewählten Rolloutobjekten passt; bietet ein
+  Regionalverband eine laut Katalog zentrale Leistung an, wird sie an den neu
+  zugeordneten Objekten regional erbracht. Rolloutobjekte ohne Klasse Bankfachlich
+  und Katalogleistungen mit höherer Klasse werden nicht zugeordnet; der Assistent
+  weist darauf hin)
 - Leistungserbringer, Ansprechpartner und Telefonnummer
 - Angebot, Bereitstellungsart, Partner, Termin/Zeitraum und Bemerkung
 
@@ -319,7 +327,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.73**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.74**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.

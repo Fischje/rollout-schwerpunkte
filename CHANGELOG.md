@@ -1,5 +1,13 @@
 # Änderungsverlauf
 
+## 0.1.74
+
+- Importassistent: Die Zeilen sind nach Projekten gegliedert – über den Zeilen jedes Projekts steht eine Überschrift mit Projektname und Zeilenzahl. Auch die Bestätigungsseite listet die Änderungen je Projekt (übergreifende Änderungen an Katalogen und Stammdaten zuerst)
+- RV-Rückmeldung: Bei neuen Rolloutleistungen ist die Spalte „Genutzt für Rolloutobjekte“ im Assistenten sichtbar und als Auswahl umgesetzt – „Alle Rolloutobjekte“ oder einzelne Rolloutobjekte des Projekts
+- „Alle Rolloutobjekte“ erreicht jetzt auch Rolloutobjekte, die bisher nur zentral erbrachte Leistungen haben (z. B. ein Erfahrungsaustausch für alle Themen): Eine neu angelegte oder projekteigene Leistung wird in ihrer Klasse Bankfachlich so weit gesenkt, dass sie zu allen gewählten Objekten passt. Bietet ein Regionalverband eine laut Katalog zentrale Leistung an, wird sie an den neu zugeordneten Objekten regional erbracht
+- „Bisher → neu“ zeigt dazu, welche Rolloutobjekte die Leistung erhalten, ob die Klasse gesenkt wird und welche Objekte nicht passen (keine Klasse Bankfachlich oder Katalogleistung mit höherer Klasse)
+- Keine Änderung am Datenbankschema
+
 ## 0.1.73
 
 - Neu: „Stand der Rückmeldungen der Regionalverbände“ unter Import (Phase 3). Je Regionalverband Häkchen „übernommen“, Datum, „Erhalten von“, Weg und Bemerkung. Der Import einer RV-Rückmeldedatei setzt Häkchen, Datum und Weg automatisch; „Liste zurücksetzen“ leert die Liste für eine neue Abfragerunde

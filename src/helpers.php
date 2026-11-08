@@ -88,12 +88,14 @@ function enrich_rollout_objects(PDO $db,array $objects): array {
     foreach($objects as &$object){$id=(int)$object['id'];$object['fi_class_code']=$classes[$id]['FI']['code']??'';$object['fi_class_label']=$classes[$id]['FI']['label']??'';$object['dsv_class_code']=$classes[$id]['DSV']['code']??'';$object['dsv_class_label']=$classes[$id]['DSV']['label']??'';}unset($object);return $objects;
 }
 
-function enrich_support_services(PDO $db, array $services): array {
+function enrich_support_services(PDO $db, array $services, bool $reload = false): array {
     if (!$services) return [];
     static $cache = [];
     static $targetCache = [];
     $dbKey = spl_object_id($db);
     $ids = array_values(array_unique(array_map('intval', array_column($services, 'id'))));
+    // Nach einer Klassenänderung im selben Aufruf die zwischengespeicherten Werte neu lesen
+    if ($reload) foreach ($ids as $id) unset($cache[$dbKey][$id], $targetCache[$dbKey][$id]);
     $missing = array_values(array_filter($ids, fn(int $id): bool => !array_key_exists($id, $cache[$dbKey] ?? [])));
     if ($missing) {
         foreach ($missing as $id) $cache[$dbKey][$id] = [];
