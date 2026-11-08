@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.74
+# Rollout-Schwerpunkte 0.1.75
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -246,6 +246,15 @@ folgen Fortsetzungsfolien. Wird die Vorlage ausgetauscht, müssen die Platzhalte
 „Projektname, Datum“ (Titelfolie) und „Titel der Präsentation | Name | Ort, Datum“
 (Schlussfolie) sowie das Layout „Text-Folie #1“ (`slideLayout18.xml`) erhalten bleiben.
 
+„Offene Punkte aller Projekte als PowerPoint“ nutzt dieselbe Vorlage für alle Projekte auf einmal:
+Eine Folie „Gesamtstatistik und Meldungen“ mit Kennzahlen (Projekte, Rolloutobjekte,
+zugesagter Anteil der RV-Angaben, offene Angaben, fehlende Bereitstellungen, eingegangene
+RV-Rückmeldungen), einer Tabelle je Projekt mit Verweis auf die Projektfolie und dem Stand
+der Rückmeldungen je Regionalverband. Danach folgt je Projekt mit offenen Punkten eine Folie
+mit nur den Leistungen, bei denen eine RV-Angabe offen ist oder keine Bereitstellung zugesagt
+wurde (RV-Matrix mit Symbolen), sowie FI-/DSV-Leistungen, die vorgesehen, aber noch nicht
+geplant sind. Vollständige Projekte erhalten keine eigene Folie.
+
 Unter „Import/Export → Export“ (Phase 4) erzeugt „Projekttabelle als PowerPoint“ die Tabelle
 aller Projekte mit Rolloutobjekten, Rollout-Klasse (bankfachlich), Rollout-Beginn
 und -Ende im Format der Vorlage
@@ -327,7 +336,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.74**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.75**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.

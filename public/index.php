@@ -261,6 +261,11 @@ if ($page === 'project-table-pptx') {
     try { download_project_table_pptx($db,trim((string)($_GET['title']??'')),trim((string)($_GET['footer']??''))); }
     catch (Throwable $error) { flash('danger','Die Projekttabelle konnte nicht erstellt werden: '.$error->getMessage()); redirect('?page=exports'); }
 }
+if ($page === 'open-points-pptx') {
+    require_login();
+    try { download_open_points_pptx($db); }
+    catch (Throwable $error) { flash('danger','Die PowerPoint-Datei konnte nicht erstellt werden: '.$error->getMessage()); redirect('?page=exports#phase-4'); }
+}
 if ($page === 'overview-pptx') {
     require_login();
     try { download_project_pptx($db,(int)($_GET['project_id']??0)); }
@@ -861,6 +866,7 @@ function render_exports(PDO $db): void {
 <section class="card p-4 phase-card" id="phase-4"><div class="row g-4"><div class="col-lg-5"><span class="badge text-bg-dark mb-2">Phase 4</span><h2 class="h5">Auswertung und Präsentation</h2><p class="text-secondary mb-0">Zusammengeführte Ergebnisse aller Leistungserbringer als Excel-Datei und als PowerPoint-Präsentation.</p></div><div class="col-lg-7 vstack gap-4">
 <div><h3 class="h6 mb-1">Gesamtbild</h3><p class="small text-secondary mb-2">Alle Rolloutleistungen, ihre Nutzung je Rolloutobjekt und die zusammengeführten Angaben aller Leistungserbringer.</p><div class="d-flex flex-wrap gap-2"><a class="btn btn-outline-dark" href="?page=export&format=xlsx">Excel exportieren</a><a class="btn btn-outline-dark" href="?page=export&format=csv">CSV exportieren</a></div></div>
 <form method="get" class="border-top pt-4"><input type="hidden" name="page" value="overview-export"><h3 class="h6 mb-1">Offene Punkte als Excel</h3><p class="small text-secondary mb-2">Regional zu erbringende Leistungen, für die einzelne Regionalverbände noch keine Bereitstellung zugesagt haben.</p><div class="input-group"><select class="form-select" name="project_id" aria-label="Projekt für offene Punkte"><option value="0">Alle Projekte</option><?=$projectOptions($templateProjects)?></select><button class="btn btn-outline-dark">Excel herunterladen</button></div></form>
+<div class="border-top pt-4"><h3 class="h6 mb-1">Offene Punkte aller Projekte als PowerPoint</h3><p class="small text-secondary mb-2">Im Format der Synchronisationsvorlage: eine Folie mit Gesamtstatistik und den Meldungen der Regionalverbände, danach je Projekt nur die Leistungen, bei denen Angaben offen sind oder eine Bereitstellung fehlt.</p><a class="btn btn-primary" href="?page=open-points-pptx">PowerPoint erstellen</a></div>
 <form method="get" class="border-top pt-4"><input type="hidden" name="page" value="overview-pptx"><h3 class="h6 mb-1">Projektübersicht als PowerPoint</h3><p class="small text-secondary mb-2">Die Übersicht eines Projekts im Format der Synchronisationsvorlage.</p><div class="input-group"><select class="form-select" name="project_id" aria-label="Projekt für die PowerPoint" required <?=$templateProjects?'':'disabled'?>><?=$projectOptions($templateProjects)?></select><button class="btn btn-primary" <?=$templateProjects?'':'disabled'?>>PowerPoint erstellen</button></div></form>
 <form method="get" class="border-top pt-4"><input type="hidden" name="page" value="project-table-pptx"><h3 class="h6 mb-1">Projekttabelle als PowerPoint</h3><p class="small text-secondary mb-2">Alle Projekte mit ihren Rolloutobjekten, Rollout-Klasse, Beginn und Ende – im Format der Tabelle „Rolloutschwerpunkte“, sortiert nach strategischen Themenfeldern.</p><div class="row g-2 align-items-end"><div class="col-md-6"><label class="form-label small">Titel</label><input class="form-control" name="title" value="<?=e('Rolloutschwerpunkte '.((int)date('Y')+1))?>"></div><div class="col-md-6"><label class="form-label small">Fußzeile</label><input class="form-control" name="footer" value="<?=e('Rolloutschwerpunkte | Stand '.german_long_date(date('Y-m-d')))?>"></div><div class="col-12"><button class="btn btn-primary">PowerPoint erstellen</button></div></div></form>
 </div></div></section>
@@ -1014,6 +1020,125 @@ function download_project_pptx(PDO $db,int $projectId): never {
 
     $footer='Synchronisation Rollout | '.$name.' | '.$date;
     Pptx::download($deck->build($name.', '.$date,$footer),'Synchronisation-Rollout-'.safe_template_filename($name).'-'.$date.'.pptx');
+}
+
+/**
+ * PowerPoint „Offene Punkte“ über alle Projekte (Vorlage „Synchronisation Rollout“):
+ * eine Folie Gesamtstatistik und Meldungen der Regionalverbände, danach je Projekt mit offenen Punkten
+ * nur die Leistungen, bei denen RV-Angaben offen sind oder eine Bereitstellung fehlt (sowie noch nicht geplante FI-/DSV-Leistungen).
+ */
+function download_open_points_pptx(PDO $db): never {
+    $projectIds=array_map('intval',$db->query('SELECT id FROM projects ORDER BY name COLLATE NOCASE')->fetchAll(PDO::FETCH_COLUMN));
+    if(!$projectIds)throw new RuntimeException('Es sind noch keine Projekte vorhanden.');
+    $styles=pptx_status_styles();
+    $deck=new Pptx(dirname(__DIR__).'/resources/powerpoint/synchronisation-rollout-vorlage.pptx');
+    $date=date('d.m.Y');
+    $source='Quelle: Rollout-Schwerpunkte, Stand '.date('d.m.Y H:i').' Uhr';
+    $topline='Synchronisation Rollout · Offene Punkte aller Projekte';
+    $X=Pptx::AREA_X;$W=Pptx::AREA_W;$Y=Pptx::AREA_Y;$BOTTOM=Pptx::AREA_BOTTOM;
+    $short=static fn(string $text,int $chars):string=>mb_strimwidth($text,0,$chars,'…');
+    $plural=static fn(int $count,string $one,string $many):string=>$count.' '.($count===1?$one:$many);
+    $pageTitle=static fn(string $title,int $index,int $count):string=>$count>1?$title.' ('.($index+1).'/'.$count.')':$title;
+    $dsvLabels=array_column(provider_class_levels($db,'DSV',true),'class_label','class_code');
+    $legend=function(int $y,array $keys)use($deck,$styles,$X):string{$xml='';$x=$X;foreach($keys as $key){[$fill,$color,$symbol,$label]=$styles[$key];
+        $xml.=$deck->box($x,$y,190000,190000,$fill,[['text'=>$symbol,'size'=>7,'color'=>$color,'align'=>'ctr']],['line'=>'BFBFBF','inset'=>0,'name'=>'Legende '.$label]);
+        $width=170000+(int)(mb_strlen($label)*52000);
+        $xml.=$deck->box($x+230000,$y-20000,$width,230000,null,[['text'=>$label,'size'=>8,'color'=>'404040']],['inset'=>0,'anchor'=>'ctr','name'=>'Legende Text']);
+        $x+=230000+$width+120000;}return $xml;};
+    $stripRows=static fn(array $rows):array=>array_map(static function(array $row):array{$cont=!empty($row['_cont']);unset($row['_block_head'],$row['_cont']);if($cont)$row[0]['text'].=' (Fortsetzung)';return $row;},$rows);
+
+    // Daten je Projekt sammeln
+    $projects=[];$rvProviders=[];
+    $total=['objects'=>0,'regional'=>0,'required'=>0,'committed'=>0,'open'=>0,'none'=>0,'fidsv'=>0];
+    $byProvider=[];
+    foreach($projectIds as $projectId){
+        $data=overview_project_data($db,$projectId);$rvProviders=$data['rv_providers'];
+        $objectNames=[];foreach($data['objects'] as $o)$objectNames[(int)$o['id']]=(string)$o['name'];
+        $regional=array_values(array_filter($data['rv'],fn($e)=>$e['rv_required']));
+        $gapEntries=array_values(array_filter($regional,fn($e)=>(bool)$e['gaps']));
+        $open=0;$none=0;
+        foreach($regional as $entry)foreach($entry['gaps'] as $providerId=>$key){if($key==='none')$none++;else$open++;$byProvider[(int)$providerId][$key==='none'?'none':'open']=($byProvider[(int)$providerId][$key==='none'?'none':'open']??0)+1;$byProvider[(int)$providerId]['projects'][$projectId]=true;}
+        $fiDsvOpen=[];
+        foreach([['FI',$data['fi_services']],['DSV',$data['dsv_services']]] as [$type,$entries])foreach($entries as $entry){$ids=array_keys(array_filter($entry['objects'],fn($state)=>$state==='open'));if($ids)$fiDsvOpen[]=['type'=>$type,'entry'=>$entry,'objects'=>array_map(fn($id)=>$objectNames[$id]??'',$ids)];}
+        $required=array_sum(array_column($regional,'required'));$committed=array_sum(array_column($regional,'committed'));
+        $projects[]=['data'=>$data,'regional'=>$regional,'gaps'=>$gapEntries,'open'=>$open,'none'=>$none,'fidsv'=>$fiDsvOpen,'required'=>$required,'committed'=>$committed,'slide'=>0];
+        $total['objects']+=count($data['objects']);$total['regional']+=count($regional);$total['required']+=$required;$total['committed']+=$committed;$total['open']+=$open;$total['none']+=$none;$total['fidsv']+=count($fiDsvOpen);
+    }
+
+    // Projektfolien vorbereiten (nur Projekte mit offenen Punkten), damit die Übersicht auf sie verweisen kann
+    $nameW=2500000;$classW=420000;$openW=520000;
+    $rvW=$rvProviders?min(620000,intdiv($W-$nameW-$classW-$openW,count($rvProviders))):0;
+    $nameW=$W-$classW-$openW-$rvW*count($rvProviders);
+    $span=count($rvProviders)+1;
+    $cols=array_merge([$nameW,$classW],array_fill(0,count($rvProviders),$rvW),[$openW]);
+    $head=['_height'=>340000,['text'=>'Leistung','bold'=>true,'fill'=>'F2F2F2'],['text'=>'ab','bold'=>true,'fill'=>'F2F2F2','align'=>'ctr']];
+    foreach($rvProviders as $provider)$head[]=['text'=>(string)$provider['name'],'bold'=>true,'fill'=>'F2F2F2','align'=>'ctr','size'=>7];
+    $head[]=['text'=>'offen','bold'=>true,'fill'=>'F2F2F2','align'=>'ctr','size'=>7];
+    $rowH=230000;$tableY=$Y+330000;$capacity=intdiv($BOTTOM-$tableY-340000,$rowH);
+    $projectSlides=[];
+    foreach($projects as $index=>$project){
+        if(!$project['gaps']&&!$project['fidsv'])continue;
+        $rows=[];
+        if($project['gaps']){
+            $rows[]=['_block_head'=>true,['text'=>'Regionalverbände – Angabe offen oder keine Bereitstellung','bold'=>true,'fill'=>'D9D9D9','span'=>2+$span]];
+            foreach($project['gaps'] as $entry){$row=[['text'=>$short((string)$entry['service']['name'],48)],['text'=>$entry['class']==='~'?'':(string)$entry['class'],'align'=>'ctr']];
+                foreach($rvProviders as $provider){$cell=$entry['cells'][(int)$provider['id']]??['key'=>'na'];[$fill,$color,$symbol]=$styles[$cell['key']]??$styles['open'];$row[]=['text'=>$symbol,'fill'=>$fill,'color'=>$color,'align'=>'ctr','bold'=>true];}
+                $row[]=['text'=>(string)count($entry['gaps']),'align'=>'ctr','bold'=>true,'color'=>'EE0000'];$rows[]=$row;}
+        }
+        if($project['fidsv']){
+            $rows[]=['_block_head'=>true,['text'=>'FI und DSV – vorgesehen, noch nicht geplant','bold'=>true,'fill'=>'D9D9D9','span'=>2+$span]];
+            foreach($project['fidsv'] as $item){$entry=$item['entry'];$class=$entry['class']==='~'?'':($item['type']==='DSV'?(string)($dsvLabels[$entry['class']]??$entry['class']):(string)$entry['class']);
+                $rows[]=[['text'=>$short($item['type'].' · '.(string)$entry['service']['name'],48)],['text'=>$class,'align'=>'ctr'],['text'=>$short('noch offen an: '.implode(', ',$item['objects']),170),'span'=>$span,'fill'=>'FFF4CC','color'=>'000000']];}
+        }
+        $pages=pptx_paginate($rows,$capacity,$capacity);
+        $projects[$index]['pages']=count($pages);
+        $name=(string)$project['data']['project']['name'];
+        $sub=implode(' · ',array_filter([$project['open']?$plural($project['open'],'offene RV-Angabe','offene RV-Angaben'):'',$project['none']?$plural($project['none'],'fehlende Bereitstellung','fehlende Bereitstellungen'):'',$project['fidsv']?$plural(count($project['fidsv']),'FI-/DSV-Leistung noch nicht geplant','FI-/DSV-Leistungen noch nicht geplant'):'',trim((string)$project['data']['project']['rollout_lead'])!==''?'TPL Rollout: '.$project['data']['project']['rollout_lead']:'']));
+        foreach($pages as $i=>$pageRows)$projectSlides[]=['project'=>$index,'title'=>$pageTitle('Offene Punkte: '.$name,$i,count($pages)),'sub'=>$sub,'rows'=>$stripRows($pageRows)];
+    }
+
+    // Folie Gesamtstatistik und Meldungen: Kennzahlen, Tabelle je Projekt, Rückmeldestand je Regionalverband
+    $statusRows=rv_import_status_rows($db);
+    $returned=count(array_filter($statusRows,fn($r)=>$r['done']));
+    $percent=$total['required']?(int)round($total['committed']*100/$total['required']):100;
+    $tiles=[['Projekte',(string)count($projects),'000000'],['Rolloutobjekte',(string)$total['objects'],'000000'],['RV-Angaben zugesagt',$percent.' %',$percent===100?'009864':'000000'],['Offene RV-Angaben',(string)$total['open'],$total['open']?'B38D00':'000000'],['Keine Bereitstellung',(string)$total['none'],$total['none']?'EE0000':'000000'],['RV-Rückmeldungen',$returned.' von '.count($statusRows),$returned<count($statusRows)?'B38D00':'009864']];
+    $gap=150000;$tileW=intdiv($W-5*$gap,6);$tileH=700000;$top='';
+    foreach($tiles as $i=>[$label,$value,$color])$top.=$deck->box($X+$i*($tileW+$gap),$Y,$tileW,$tileH,'F2F2F2',[['text'=>$value,'size'=>20,'color'=>$color,'bold'=>true],['text'=>$label,'size'=>9,'color'=>'404040']],['round'=>true,'name'=>'Kachel '.$label,'anchor'=>'t','inset'=>108000]);
+    $tablesY=$Y+$tileH+300000;
+    $leftW=6350000;$rightX=$X+$leftW+250000;$rightW=$W-$leftW-250000;
+    $statRowH=245000;$statHeadH=320000;
+    $th=static fn(string $text,string $align='ctr'):array=>['text'=>$text,'bold'=>true,'fill'=>'F2F2F2','align'=>$align,'size'=>8];
+    $projectHead=['_height'=>$statHeadH,$th('Projekt','l'),$th('Regional'),$th('zugesagt'),$th('offen'),$th('keine Bereit.'),$th('FI/DSV offen'),$th('Folie / ✓')];
+    $projectCols=[$leftW-6*660000,660000,660000,660000,660000,660000,660000];
+    $firstSlideNo=2;$statPages=pptx_paginate_fill(array_keys($projects),max(1,intdiv($BOTTOM-$tablesY-$statHeadH,$statRowH)),intdiv($BOTTOM-$Y-$statHeadH,$statRowH));
+    $slideNo=$firstSlideNo+count($statPages);$seen=[];
+    foreach($projectSlides as $slide)if(!isset($seen[$slide['project']])){$seen[$slide['project']]=true;$projects[$slide['project']]['slide']=$slideNo++;}else$slideNo++;
+    $cell=static fn(int $value,string $color):array=>['text'=>$value?(string)$value:'–','align'=>'ctr','bold'=>$value>0,'color'=>$value?$color:'7F7F7F'];
+    $rvHead=['_height'=>$statHeadH,$th('Regionalverband','l'),$th('Rückmeldung'),$th('offen'),$th('keine Bereit.')];
+    $rvCols=[$rightW-1150000-2*620000,1150000,620000,620000];
+    $rvRows=[];
+    foreach($statusRows as $status){$counts=$byProvider[$status['id']]??[];$done=$status['done'];
+        $rvRows[]=[['text'=>$status['name']],['text'=>$done?'✓ '.format_date($status['date'],''):'ausstehend','align'=>'ctr','fill'=>$done?'009864':'FFC900','color'=>$done?'FFFFFF':'000000','bold'=>true],$cell((int)($counts['open']??0),'B38D00'),$cell((int)($counts['none']??0),'EE0000')];}
+    if(!$rvRows)$rvRows[]=[['text'=>'Keine aktiven Regionalverbände','span'=>4,'color'=>'7F7F7F']];
+    $statSub=$returned.' von '.count($statusRows).' RV zurückgemeldet · '.$plural(count($seen),'Projekt','Projekte').' mit offenen Punkten';
+    foreach($statPages as $i=>$indexes){
+        $rows=[];
+        foreach($indexes as $index){$project=$projects[$index];$p=$project['required']?(int)round($project['committed']*100/$project['required']):null;$complete=!$project['gaps']&&!$project['fidsv'];
+            $rows[]=[['text'=>$short((string)$project['data']['project']['name'],46)],['text'=>(string)count($project['regional']),'align'=>'ctr'],['text'=>$p===null?'–':$p.' %','align'=>'ctr','bold'=>true,'color'=>$p===null?'7F7F7F':($p===100?'009864':'000000')],$cell($project['open'],'B38D00'),$cell($project['none'],'EE0000'),$cell(count($project['fidsv']),'B38D00'),['text'=>$complete?'✓':(string)$project['slide'],'align'=>'ctr','fill'=>$complete?'009864':null,'color'=>$complete?'FFFFFF':'000000','bold'=>true]];}
+        $shapes=$deck->table($X,$i===0?$tablesY:$Y,$projectCols,array_merge([$projectHead],$rows),$statRowH,8);
+        if($i===0)$shapes=$top.$deck->box($X,$tablesY-260000,$leftW,240000,null,[['text'=>'Projekte','size'=>10,'bold'=>true]],['inset'=>0,'anchor'=>'b','name'=>'Überschrift Projekte'])
+            .$shapes.$deck->box($rightX,$tablesY-260000,$rightW,240000,null,[['text'=>'Meldungen der Regionalverbände','size'=>10,'bold'=>true]],['inset'=>0,'anchor'=>'b','name'=>'Überschrift Meldungen'])
+            .$deck->table($rightX,$tablesY,$rvCols,array_merge([$rvHead],$rvRows),$statRowH,8);
+        $deck->addSlide($topline,$pageTitle('Gesamtstatistik und Meldungen',$i,count($statPages)),$statSub,$source,$shapes);
+    }
+
+    // Projektfolien
+    $projectLegend=$legend($Y+20000,['self','other_rv','external','open','none','na']);
+    foreach($projectSlides as $slide)$deck->addSlide($topline,$slide['title'],$slide['sub'],$source,$projectLegend.$deck->table($X,$tableY,$cols,array_merge([$head],$slide['rows']),$rowH,8));
+    if(!$projectSlides)$deck->addSlide($topline,'Keine offenen Punkte','Alle Projekte sind vollständig',$source,$deck->box($X,$Y,$W,600000,'E5F5EF',[['text'=>'Für alle Projekte liegen die Angaben der Regionalverbände vollständig vor; FI- und DSV-Leistungen sind geplant.','size'=>12,'color'=>'00764E']],['round'=>true,'name'=>'Hinweis']));
+
+    $footer='Synchronisation Rollout | Offene Punkte | '.$date;
+    Pptx::download($deck->build('Offene Punkte aller Projekte, '.$date,$footer),'Offene-Punkte-Rollout-'.$date.'.pptx');
 }
 
 /** Datum wie in der Rolloutschwerpunkte-Tabelle: „Aug 26“; leer wird „-“. */

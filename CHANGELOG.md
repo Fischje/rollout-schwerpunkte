@@ -1,5 +1,11 @@
 # Änderungsverlauf
 
+## 0.1.75
+
+- Neu unter Export (Phase 4): „Offene Punkte aller Projekte als PowerPoint“ im Format der Synchronisationsvorlage
+- Folie „Gesamtstatistik und Meldungen“: Kennzahlen über alle Projekte, Tabelle je Projekt (regionale Leistungen, zugesagter Anteil, offene Angaben, keine Bereitstellung, offene FI-/DSV-Leistungen, Verweis auf die Projektfolie) und der Stand der Rückmeldungen je Regionalverband mit offenen und fehlenden Bereitstellungen
+- Danach je Projekt mit offenen Punkten eine Folie (bei Bedarf mit Fortsetzung): nur Leistungen mit offener RV-Angabe oder fehlender Bereitstellung als RV-Matrix sowie vorgesehene, noch nicht geplante FI-/DSV-Leistungen. Vollständige Projekte erhalten keine eigene Folie
+
 ## 0.1.74
 
 - Importassistent: Die Zeilen sind nach Projekten gegliedert – über den Zeilen jedes Projekts steht eine Überschrift mit Projektname und Zeilenzahl. Auch die Bestätigungsseite listet die Änderungen je Projekt (übergreifende Änderungen an Katalogen und Stammdaten zuerst)
