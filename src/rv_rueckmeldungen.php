@@ -190,10 +190,13 @@ function rv_view_data(PDO $db, array $provider): array {
         $serviceStmt->execute([$providerId, $projectId]);
         $projectServices = enrich_support_services($db, $serviceStmt->fetchAll());
         $deliveryMap = project_service_delivery_map($db, $projectId, $projectServices);
+        // Zusatzangebote anderer Regionalverbände werden diesem RV nicht vorgelegt (er wird dazu nicht gefragt)
+        $additional = rv_additional_services($db, $projectId);
         $services = [];
         foreach ($projectServices as $service) {
             $delivery = $deliveryMap[(int)$service['id']] ?? ['regional' => [], 'central' => [], 'rv_required' => true];
             if (!service_applies_to_provider($service, $provider, $classObject) || !$delivery['rv_required']) continue;
+            if (!rv_service_asked($additional, (int)$service['id'], $providerId)) continue;
             $service['regional_objects'] = array_values(array_filter(array_map(static fn($id) => $objects[$id]['name'] ?? null, $delivery['regional'])));
             $service['central_objects'] = array_values(array_filter(array_map(static fn($id) => $objects[$id]['name'] ?? null, $delivery['central'])));
             $services[(int)$service['id']] = $service;
@@ -201,8 +204,9 @@ function rv_view_data(PDO $db, array $provider): array {
         uasort($services, static fn($a, $b) => strnatcmp(export_class_rank($a, 'RV'), export_class_rank($b, 'RV')) ?: strnatcasecmp((string)$a['name'], (string)$b['name']));
 
         // Ergänzbar: regionale Katalogleistungen, die zur Projektklasse passen und noch nicht im Projekt sind
+        // (oder dort nur Zusatzangebot anderer Regionalverbände sind – dieser RV kann sie ebenfalls anbieten)
         $inProject = [];
-        foreach ($projectServices as $service) $inProject[(int)$service['id']] = true;
+        foreach ($projectServices as $service) if (rv_service_asked($additional, (int)$service['id'], $providerId)) $inProject[(int)$service['id']] = true;
         $catalog = [];
         foreach ($standardServices as $service) {
             if (isset($inProject[(int)$service['id']]) || !service_regional_capable($service) || ($service['default_delivery'] ?? 'regional') === 'central') continue;

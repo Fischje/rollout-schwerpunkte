@@ -1,5 +1,12 @@
 # Änderungsverlauf
 
+## 0.1.76
+
+- Korrektur: Zusätzliche Leistungen, die ein Regionalverband selbst anbietet (Rückmeldung oder RV-Sicht), erscheinen bei den anderen Regionalverbänden nicht mehr als „offen“. Offen ist nur, was vom TPL bzw. Projekt festgelegt und abgefragt wird
+- Bei den übrigen Regionalverbänden steht „Nicht abgefragt – Zusatzangebot“; die Leistung trägt in Übersicht und PowerPoint den Hinweis „Zusatzangebot <RV>“
+- Gilt für Übersicht, Projekt-PowerPoint, „Offene Punkte aller Projekte“, Excel „Offene Punkte“, Gesamtexport, RV-Sicht und die RV-Abfragedateien. In der RV-Sicht können andere Regionalverbände eine solche Katalogleistung weiterhin selbst ergänzen
+- Erkennung über den Herkunftsvermerk der Zuordnungen zu Rolloutobjekten; legt der TPL-/PL-Import oder die Projektmatrix die Leistung fest, werden wieder alle Regionalverbände gefragt. Keine Änderung am Datenbankschema
+
 ## 0.1.75
 
 - Neu unter Export (Phase 4): „Offene Punkte aller Projekte als PowerPoint“ im Format der Synchronisationsvorlage

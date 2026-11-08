@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.75
+# Rollout-Schwerpunkte 0.1.76
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -273,6 +273,18 @@ des Browsers meldet nicht ab. Die Dauer lässt sich in `config.php` mit
 `'session_lifetime_hours' => 12` ändern. Sitzungen werden in `data/sessions`
 gespeichert (wird automatisch angelegt).
 
+## Zusatzangebote einzelner Regionalverbände
+
+Bietet ein Regionalverband über seine Rückmeldung (Zeilen „Neue Rolloutleistung“) oder
+die RV-Sicht eine zusätzliche Leistung an, gilt sie im Projekt als Zusatzangebot dieses
+Regionalverbands. Die übrigen Regionalverbände werden dazu nicht gefragt: Übersicht,
+Auswertungen und PowerPoints zeigen bei ihnen „Nicht abgefragt“ statt „Offen“, sie zählt
+nicht als offener Punkt und erscheint weder in ihrer RV-Datei noch in ihrer RV-Sicht.
+Erkannt wird das am Herkunftsvermerk: Stammen alle Zuordnungen der Leistung zu
+Rolloutobjekten aus RV-Rückmeldungen oder der RV-Sicht, ist sie ein Zusatzangebot.
+Sobald der TPL-/PL-Import oder die Projektmatrix sie an einem Rolloutobjekt festlegt
+(oder sie aus Altbestand ohne Vermerk stammt), werden wieder alle Regionalverbände gefragt.
+
 ## Wer hat zuletzt geändert?
 
 Es gilt: Wer zuletzt etwas gesagt hat, überschreibt die Angabe des anderen –
@@ -336,7 +348,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.75**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.76**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.

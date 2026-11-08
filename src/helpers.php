@@ -726,3 +726,49 @@ function build_draft_eml(array $recipients, string $subject, string $body, array
     $lines[] = '';
     return implode("\r\n", $lines);
 }
+
+/** Herkunft einer Angabe aus einer RV-Rückmeldung (Import) oder der RV-Sicht – nicht vom TPL/Projekt festgelegt. */
+function origin_is_rv_addition(?string $origin): bool {
+    $origin = (string)$origin;
+    return str_starts_with($origin, 'Rückmeldung') || str_starts_with($origin, 'RV-Sicht');
+}
+
+/**
+ * Zusatzangebote einzelner Regionalverbände in einem Projekt: Leistungen, deren Zuordnungen zu Rolloutobjekten
+ * ausschließlich aus RV-Rückmeldungen bzw. der RV-Sicht stammen (nicht vom TPL-Import, aus der Projektmatrix
+ * oder aus Altbestand). Gefragt sind dazu nur die Regionalverbände, die selbst eine Angabe gemacht haben.
+ * Projekteigene Leistungen ganz ohne Rolloutobjekt zählen dazu, wenn nur RV-Rückmeldungen Angaben dazu enthalten.
+ * Rückgabe: [Leistungs-ID => [Provider-ID => true]] (die Regionalverbände mit Angabe).
+ */
+function rv_additional_services(PDO $db, int $projectId): array {
+    $tplSet = []; $rvUsage = [];
+    $stmt = $db->prepare('SELECT support_service_id, origin FROM project_service_rollout_objects WHERE project_id=?');
+    $stmt->execute([$projectId]);
+    foreach ($stmt->fetchAll() as $row) {
+        if (origin_is_rv_addition($row['origin'] ?? null)) $rvUsage[(int)$row['support_service_id']] = true;
+        else $tplSet[(int)$row['support_service_id']] = true;
+    }
+    $answered = []; $foreignMatrix = [];
+    $stmt = $db->prepare("SELECT m.support_service_id, m.provider_id, m.offered, m.delivery_mode, m.origin FROM project_support_matrix m JOIN providers p ON p.id=m.provider_id AND p.type='RV' WHERE m.project_id=?");
+    $stmt->execute([$projectId]);
+    foreach ($stmt->fetchAll() as $row) {
+        $serviceId = (int)$row['support_service_id'];
+        if (!origin_is_rv_addition($row['origin'] ?? null)) $foreignMatrix[$serviceId] = true;
+        if (!empty($row['offered']) || (string)$row['delivery_mode'] !== '') $answered[$serviceId][(int)$row['provider_id']] = true;
+    }
+    $result = [];
+    foreach ($rvUsage as $serviceId => $_) if (!isset($tplSet[$serviceId])) $result[$serviceId] = $answered[$serviceId] ?? [];
+    // Ohne Rolloutobjekt: nur projekteigene Leistungen, zu denen ausschließlich RV-Rückmeldungen Angaben enthalten
+    $stmt = $db->prepare('SELECT ps.support_service_id FROM project_services ps JOIN support_services s ON s.id=ps.support_service_id WHERE ps.project_id=? AND s.is_standard=0 AND NOT EXISTS (SELECT 1 FROM project_service_rollout_objects u WHERE u.project_id=ps.project_id AND u.support_service_id=ps.support_service_id)');
+    $stmt->execute([$projectId]);
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $serviceId) {
+        $serviceId = (int)$serviceId;
+        if (!empty($answered[$serviceId]) && !isset($foreignMatrix[$serviceId])) $result[$serviceId] = $answered[$serviceId];
+    }
+    return $result;
+}
+
+/** Wird der Regionalverband zu dieser Leistung gefragt? Nein, wenn sie nur Zusatzangebot anderer Regionalverbände ist. */
+function rv_service_asked(array $additional, int $serviceId, int $providerId): bool {
+    return !isset($additional[$serviceId]) || isset($additional[$serviceId][$providerId]);
+}
