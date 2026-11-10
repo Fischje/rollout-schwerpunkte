@@ -195,7 +195,9 @@ function rv_view_data(PDO $db, array $provider): array {
         $services = [];
         foreach ($projectServices as $service) {
             $delivery = $deliveryMap[(int)$service['id']] ?? ['regional' => [], 'central' => [], 'rv_required' => true];
-            if (!service_applies_to_provider($service, $provider, $classObject) || !$delivery['rv_required']) continue;
+            // Eigenes Zusatzangebot dieses RV erscheint auch dann, wenn die Leistungsklasse über der Projektklasse liegt
+            $ownAddition = isset($additional[(int)$service['id']][$providerId]) && in_array('RV', (array)$service['provider_targets'], true);
+            if ((!service_applies_to_provider($service, $provider, $classObject) && !$ownAddition) || !$delivery['rv_required']) continue;
             if (!rv_service_asked($additional, (int)$service['id'], $providerId)) continue;
             $service['regional_objects'] = array_values(array_filter(array_map(static fn($id) => $objects[$id]['name'] ?? null, $delivery['regional'])));
             $service['central_objects'] = array_values(array_filter(array_map(static fn($id) => $objects[$id]['name'] ?? null, $delivery['central'])));

@@ -1,5 +1,12 @@
 # Änderungsverlauf
 
+## 0.1.78
+
+- Korrektur: Regionalverbände dürfen individuell mehr anbieten, als die Leistungsklasse vorgibt. Meldet ein RV eine Leistung für ein Projekt oder Rolloutobjekt unterhalb ihrer Klasse zurück, bricht der Import nicht mehr ab; die Leistung wird als Zusatzangebot nur dieses RV übernommen
+- Die Klasse der Leistung bleibt dabei unverändert; das automatische Senken der Klasse aus 0.1.74 entfällt. Andere Regionalverbände werden dazu weiterhin nicht gefragt
+- Solche Zuordnungen bleiben beim Aufräumen nach Klassen erhalten und werden auch von einem TPL-/PL-Import mit „Datei ist maßgeblich“ nicht entfernt. Der anbietende RV sieht sein Angebot in Übersicht, RV-Datei, RV-Sicht und Gesamtexport
+- Die Vorab-Warnung „Daran würde der Import scheitern“ entfällt für Regionalverbände; „Bisher → neu“ weist stattdessen auf das individuelle Zusatzangebot hin. Für FI und DSV sowie bei einer Leistung aus einem anderen Katalog bleibt die Prüfung mit Zeilenangabe bestehen
+
 ## 0.1.77
 
 - Importassistent: Bricht der Import an einer Zeile ab, nennt die Meldung die Zeile des Assistenten mit Projekt und Leistung (z. B. „Zeile 4 (Projekt Alpha · Webinar): …“). Die Zeile wird rot markiert, die Meldung steht zusätzlich in der Zeile, und die Seite springt dorthin

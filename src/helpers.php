@@ -255,7 +255,7 @@ function service_applies_to_rollout_object(array $service, array $object): bool 
 }
 
 function prune_invalid_service_rollout_usage(PDO $db, ?int $projectId = null, ?int $serviceId = null): void {
-    $sql = 'SELECT r.id,u.project_id,u.support_service_id,u.rollout_object_id,r.functional_class
+    $sql = 'SELECT r.id,u.project_id,u.support_service_id,u.rollout_object_id,u.origin usage_origin,r.functional_class
             FROM project_service_rollout_objects u
             JOIN rollout_objects r ON r.id=u.rollout_object_id WHERE 1=1';
     $params = [];
@@ -264,7 +264,8 @@ function prune_invalid_service_rollout_usage(PDO $db, ?int $projectId = null, ?i
     $stmt=$db->prepare($sql);$stmt->execute($params);$rows=enrich_rollout_objects($db,$stmt->fetchAll());if(!$rows)return;
     $serviceIds=array_values(array_unique(array_map('intval',array_column($rows,'support_service_id'))));$placeholders=implode(',',array_fill(0,count($serviceIds),'?'));$stmt=$db->prepare("SELECT * FROM support_services WHERE id IN ($placeholders)");$stmt->execute($serviceIds);$services=[];foreach(enrich_support_services($db,$stmt->fetchAll()) as $service)$services[(int)$service['id']]=$service;
     $delete=$db->prepare('DELETE FROM project_service_rollout_objects WHERE project_id=? AND support_service_id=? AND rollout_object_id=?');
-    foreach($rows as $row)if(!isset($services[(int)$row['support_service_id']])||!service_applies_to_rollout_object($services[(int)$row['support_service_id']],$row))$delete->execute([(int)$row['project_id'],(int)$row['support_service_id'],(int)$row['rollout_object_id']]);
+    // Zusatzangebote einzelner Regionalverbände dürfen unterhalb der Leistungsklasse liegen und bleiben erhalten
+    foreach($rows as $row)if(!origin_is_rv_addition($row['usage_origin']??null)&&(!isset($services[(int)$row['support_service_id']])||!service_applies_to_rollout_object($services[(int)$row['support_service_id']],$row)))$delete->execute([(int)$row['project_id'],(int)$row['support_service_id'],(int)$row['rollout_object_id']]);
 }
 
 /** Nur bankfachliche Leistungen mit Zuständigkeit Regionalverbände können regional erbracht werden. */
@@ -737,7 +738,7 @@ function origin_is_rv_addition(?string $origin): bool {
  * Zusatzangebote einzelner Regionalverbände in einem Projekt: Leistungen, deren Zuordnungen zu Rolloutobjekten
  * ausschließlich aus RV-Rückmeldungen bzw. der RV-Sicht stammen (nicht vom TPL-Import, aus der Projektmatrix
  * oder aus Altbestand). Gefragt sind dazu nur die Regionalverbände, die selbst eine Angabe gemacht haben.
- * Projekteigene Leistungen ganz ohne Rolloutobjekt zählen dazu, wenn nur RV-Rückmeldungen Angaben dazu enthalten.
+ * Leistungen ganz ohne Rolloutobjekt zählen dazu, wenn nur RV-Rückmeldungen Angaben dazu enthalten.
  * Rückgabe: [Leistungs-ID => [Provider-ID => true]] (die Regionalverbände mit Angabe).
  */
 function rv_additional_services(PDO $db, int $projectId): array {
@@ -758,8 +759,8 @@ function rv_additional_services(PDO $db, int $projectId): array {
     }
     $result = [];
     foreach ($rvUsage as $serviceId => $_) if (!isset($tplSet[$serviceId])) $result[$serviceId] = $answered[$serviceId] ?? [];
-    // Ohne Rolloutobjekt: nur projekteigene Leistungen, zu denen ausschließlich RV-Rückmeldungen Angaben enthalten
-    $stmt = $db->prepare('SELECT ps.support_service_id FROM project_services ps JOIN support_services s ON s.id=ps.support_service_id WHERE ps.project_id=? AND s.is_standard=0 AND NOT EXISTS (SELECT 1 FROM project_service_rollout_objects u WHERE u.project_id=ps.project_id AND u.support_service_id=ps.support_service_id)');
+    // Ohne Rolloutobjekt: Leistungen, zu denen ausschließlich RV-Rückmeldungen Angaben enthalten
+    $stmt = $db->prepare('SELECT ps.support_service_id FROM project_services ps JOIN support_services s ON s.id=ps.support_service_id WHERE ps.project_id=? AND NOT EXISTS (SELECT 1 FROM project_service_rollout_objects u WHERE u.project_id=ps.project_id AND u.support_service_id=ps.support_service_id)');
     $stmt->execute([$projectId]);
     foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $serviceId) {
         $serviceId = (int)$serviceId;

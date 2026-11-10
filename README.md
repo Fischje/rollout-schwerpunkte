@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.77
+# Rollout-Schwerpunkte 0.1.78
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -285,6 +285,10 @@ Rolloutobjekten aus RV-Rückmeldungen oder der RV-Sicht, ist sie ein Zusatzangeb
 Sobald der TPL-/PL-Import oder die Projektmatrix sie an einem Rolloutobjekt festlegt
 (oder sie aus Altbestand ohne Vermerk stammt), werden wieder alle Regionalverbände gefragt.
 
+Ein Zusatzangebot darf unterhalb der Leistungsklasse liegen (der Katalog legt nur fest,
+wonach gefragt wird). Solche Zuordnungen werden beim Aufräumen nach Klassen nicht entfernt,
+ebenso wenig durch einen TPL-/PL-Import mit „Datei ist maßgeblich“.
+
 ## Wer hat zuletzt geändert?
 
 Es gilt: Wer zuletzt etwas gesagt hat, überschreibt die Angabe des anderen –
@@ -311,13 +315,11 @@ Die Anwendung erkennt insbesondere:
 - Unterstützungsleistung sowie ihre Leistungsklassen
 - `Genutzt für Rolloutobjekte` mit einer Bezeichnung je Zeile
   (in Zeilen „Neue Rolloutleistung“ der RV-Datei auch `Alle Rolloutobjekte`;
-  der Importassistent zeigt dafür eine Auswahl je Projekt. Eine dabei neu
-  angelegte oder projekteigene Leistung wird in ihrer Klasse Bankfachlich so weit
-  gesenkt, dass sie zu allen gewählten Rolloutobjekten passt; bietet ein
-  Regionalverband eine laut Katalog zentrale Leistung an, wird sie an den neu
-  zugeordneten Objekten regional erbracht. Rolloutobjekte ohne Klasse Bankfachlich
-  und Katalogleistungen mit höherer Klasse werden nicht zugeordnet; der Assistent
-  weist darauf hin)
+  der Importassistent zeigt dafür eine Auswahl je Projekt. Ein Regionalverband
+  darf dabei auch an Rolloutobjekten unterhalb der Leistungsklasse anbieten – als
+  individuelles Zusatzangebot, das nur für ihn gilt; die Klasse der Leistung bleibt
+  unverändert. Bietet er eine laut Katalog zentrale Leistung an, wird sie an den neu
+  zugeordneten Objekten regional erbracht)
 - Leistungserbringer, Ansprechpartner und Telefonnummer
 - Angebot, Bereitstellungsart, Partner, Termin/Zeitraum und Bemerkung
 
@@ -348,7 +350,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.77**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.78**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.
