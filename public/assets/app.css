@@ -151,3 +151,7 @@ body { background:var(--spark-light); color:var(--spark-dark); }
 .import-project-group-label { position:sticky; left:.5rem; display:inline-block; }
 .import-review-table td[data-used-picker] { min-width:12rem; }
 .import-review-table td[data-used-picker] .form-check { min-height:0; }
+/* Importassistent: Zeile, an der der Import abgebrochen hat */
+.import-review-table tr.import-error-row > td { background-color:#fde8e8!important; }
+.import-review-table tr.import-error-row > td:first-child { box-shadow:inset 4px 0 0 #dc3545; }
+.import-error-note { min-width:15rem; color:#842029; background:#fff; border:1px solid #f1aeb5; border-radius:.375rem; padding:.35rem .5rem; white-space:normal; }

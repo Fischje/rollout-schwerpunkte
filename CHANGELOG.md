@@ -1,5 +1,11 @@
 # Änderungsverlauf
 
+## 0.1.77
+
+- Importassistent: Bricht der Import an einer Zeile ab, nennt die Meldung die Zeile des Assistenten mit Projekt und Leistung (z. B. „Zeile 4 (Projekt Alpha · Webinar): …“). Die Zeile wird rot markiert, die Meldung steht zusätzlich in der Zeile, und die Seite springt dorthin
+- Verständlichere Meldung statt „passt nicht zur Klasse des gewählten Rolloutobjekts oder zum Leistungserbringer“: Sie nennt den Grund (Leistung gilt erst ab Klasse X, das höchste Rolloutobjekt im Projekt hat nur Klasse Y; oder die Leistung gehört zu einem anderen Katalog) und was zu tun ist
+- RV-Rückmeldung: Der Assistent warnt schon vor dem Absenden in „Bisher → neu“, wenn eine zugeordnete Leistung aus diesem Grund nicht übernommen werden kann
+
 ## 0.1.76
 
 - Korrektur: Zusätzliche Leistungen, die ein Regionalverband selbst anbietet (Rückmeldung oder RV-Sicht), erscheinen bei den anderen Regionalverbänden nicht mehr als „offen“. Offen ist nur, was vom TPL bzw. Projekt festgelegt und abgefragt wird

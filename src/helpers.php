@@ -772,3 +772,35 @@ function rv_additional_services(PDO $db, int $projectId): array {
 function rv_service_asked(array $additional, int $serviceId, int $providerId): bool {
     return !isset($additional[$serviceId]) || isset($additional[$serviceId][$providerId]);
 }
+
+/** Fehler einer bestimmten Zeile im Importassistenten (Code = Zeilennummer). */
+class ImportRowException extends RuntimeException {}
+
+/**
+ * Verständliche Begründung, warum eine Leistung nicht zum Leistungserbringer bzw. zur Klasse passt
+ * (Rückmeldung eines Leistungserbringers im Import). $classObject: Rolloutobjekt oder höchste Klassen des Projekts.
+ */
+function provider_mismatch_reason(array $service, string $providerType, ?array $classObject, string $objectName = ''): string {
+    $name = '„' . (string)($service['name'] ?? '') . '“';
+    $targets = (array)($service['provider_targets'] ?? []);
+    $labels = ['RV' => 'der Regionalverbände (bankfachlich)', 'FI' => 'der FI', 'DSV' => 'des DSV'];
+    $hint = ' Bitte in „Zuordnung Leistung“ eine passende Leistung wählen, sie als neue Leistung anlegen oder die Zeile nicht übernehmen.';
+    if (!in_array($providerType, $targets, true)) {
+        $catalog = implode(' bzw. ', array_map(static fn($t) => $labels[$t] ?? $t, $targets)) ?: 'keines Leistungserbringers';
+        return 'Die Leistung ' . $name . ' gehört zum Katalog ' . $catalog . ', die Datei stammt aber von einem Leistungserbringer ' . ($labels[$providerType] ?? $providerType) . '.' . $hint;
+    }
+    $dimension = $providerType === 'RV' ? 'functional' : ($providerType === 'DSV' ? 'dsv' : 'technical');
+    $field = ['functional' => 'functional_class', 'technical' => 'fi_class_code', 'dsv' => 'dsv_class_code'][$dimension];
+    $area = ['functional' => 'Bankfachlich', 'technical' => 'FI', 'dsv' => 'DSV'][$dimension];
+    $codes = [];
+    foreach ((array)($service['class_codes'] ?? []) as $entry) {
+        [$d, $c] = array_pad(explode(':', (string)$entry, 2), 2, '');
+        if ($d === $dimension) $codes[] = $c;
+    }
+    sort($codes, SORT_NATURAL);
+    if (!$codes) return 'Für die Leistung ' . $name . ' ist im Katalog keine Klasse ' . $area . ' hinterlegt.' . $hint;
+    $where = $objectName !== '' ? 'Das Rolloutobjekt „' . $objectName . '“ hat' : 'Im Projekt hat das höchste Rolloutobjekt';
+    $objectClass = (string)($classObject[$field] ?? '');
+    if ($objectClass === '') return 'Die Leistung ' . $name . ' gilt ab Klasse ' . $area . ' ' . $codes[0] . ', aber ' . ($objectName !== '' ? 'das Rolloutobjekt „' . $objectName . '“ hat' : 'kein Rolloutobjekt des Projekts hat') . ' eine Klasse ' . $area . '.' . $hint;
+    return 'Die Leistung ' . $name . ' gilt erst ab Klasse ' . $area . ' ' . $codes[0] . '. ' . $where . ' nur Klasse ' . $objectClass . ' – die Leistung ist dort also gar nicht vorgesehen.' . $hint;
+}
