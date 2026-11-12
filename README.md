@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.78
+# Rollout-Schwerpunkte 0.1.79
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -289,6 +289,17 @@ Ein Zusatzangebot darf unterhalb der Leistungsklasse liegen (der Katalog legt nu
 wonach gefragt wird). Solche Zuordnungen werden beim Aufräumen nach Klassen nicht entfernt,
 ebenso wenig durch einen TPL-/PL-Import mit „Datei ist maßgeblich“.
 
+### Angaben der Regionalverbände zurücksetzen
+
+Unter Import → „Stand der Rückmeldungen“ → „Angaben der Regionalverbände zurücksetzen“
+lassen sich die Rückmeldungen und Zusatzangebote der Regionalverbände entfernen, um sie
+neu zu erfassen. Festlegungen des TPL/Projekts sowie FI und DSV bleiben unverändert.
+Erkannte Zusatzangebote sind vorausgewählt; früher erfasste, nicht erkannte Zusatzangebote
+(Herkunft z. B. „Projektmatrix“ oder „ohne Vermerk“) lassen sich in der Liste der übrigen
+Leistungen von Hand anhaken. Vorher entsteht automatisch eine Sicherungskopie der Datenbank
+im Datenordner (`<Datenbank>.vor-rv-zuruecksetzen-<Datum>`); zum Zurückholen die Anwendung
+anhalten und die Kopie an die Stelle der Datenbankdatei legen.
+
 ## Wer hat zuletzt geändert?
 
 Es gilt: Wer zuletzt etwas gesagt hat, überschreibt die Angabe des anderen –
@@ -350,7 +361,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.78**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.79**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.

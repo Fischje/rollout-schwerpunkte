@@ -208,6 +208,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             redirect('?page=import#rv-stand');
         }
+        if ($action === 'rv_reset') {
+            $result = rv_reset_apply($db, (string)$config['db_path'], ['answers' => !empty($_POST['answers']), 'contacts' => !empty($_POST['contacts']), 'status' => !empty($_POST['status']), 'remove' => (array)($_POST['remove'] ?? [])]);
+            $parts = [];
+            if (!empty($_POST['answers'])) $parts[] = $result['answers'] . ' Angabe(n) der Regionalverbände gelöscht';
+            if ($result['services']) $parts[] = $result['services'] . ' Leistung(en) aus den Projekten entfernt';
+            if ($result['usages']) $parts[] = $result['usages'] . ' von Regionalverbänden ergänzte Zuordnung(en) zu Rolloutobjekten gelöst';
+            if (!empty($_POST['contacts'])) $parts[] = $result['contacts'] . ' Ansprechpartner gelöscht';
+            if ($result['status']) $parts[] = 'Stand der Rückmeldungen geleert';
+            flash('success', ($parts ? implode(', ', $parts) : 'Es war nichts ausgewählt') . '. Sicherungskopie: ' . basename($result['backup']) . ' (im Datenordner der Anwendung).');
+            redirect('?page=import#rv-stand');
+        }
         if ($action === 'save_rv_view') {
             $providerId = (int)($_POST['provider_id'] ?? 0);
             $payload = json_decode((string)($_POST['payload'] ?? ''), true);
@@ -311,6 +322,7 @@ switch ($page) {
     case 'strategic-fields': render_section_tabs('settings','strategic-fields'); render_strategic_fields($db); break;
     case 'exports': render_section_tabs('transfer','exports'); render_exports($db); break;
     case 'import': render_section_tabs('transfer','import'); render_import($db); break;
+    case 'rv-reset': render_section_tabs('transfer','import'); render_rv_reset($db); break;
     default: render_overview($db,(int)($_GET['project_id']??0),(int)($_GET['object_id']??0),(string)($_GET['area']??'ALL'));
 }
 render_footer();
@@ -326,7 +338,7 @@ function render_auth(string $mode,array $config): never { ?>
 
 /** Hauptmenü: Link, Beschriftung und die Seiten, bei denen der Punkt als aktiv gilt. */
 function main_menu(): array {
-    return [['?page=overview','Übersicht',['overview','']],['?page=projects','Projektanpassung',['projects','project','object','matrix','custom-service']],['?page=rv-view','RV-Sicht',['rv-view']],['?page=catalog','Einstellungen',['catalog','providers','classes','strategic-fields']],['?page=exports','Import/Export',['exports','import']]];
+    return [['?page=overview','Übersicht',['overview','']],['?page=projects','Projektanpassung',['projects','project','object','matrix','custom-service']],['?page=rv-view','RV-Sicht',['rv-view']],['?page=catalog','Einstellungen',['catalog','providers','classes','strategic-fields']],['?page=exports','Import/Export',['exports','import','rv-reset']]];
 }
 /** Reiter der Bereiche „Einstellungen“ und „Import/Export“. */
 function render_section_tabs(string $section,string $active): void {

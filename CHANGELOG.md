@@ -1,5 +1,13 @@
 # Änderungsverlauf
 
+## 0.1.79
+
+- Neu unter Import (Phase 3, beim „Stand der Rückmeldungen“): „Angaben der Regionalverbände zurücksetzen“. Entfernt die Rückmeldungen der Regionalverbände und ihre Zusatzangebote, damit sie neu erfasst werden können. Festlegungen des TPL bzw. Projekts (Rolloutobjekte, Klassen, vorgesehene Leistungen) und alle Angaben von FI und DSV bleiben unverändert
+- Wählbar: Angaben aller Regionalverbände löschen, Stand der Rückmeldungen leeren, Ansprechpartner der Regionalverbände je Projekt löschen
+- Erkannte Zusatzangebote sind je Projekt aufgelistet und vorausgewählt. Hat ein Regionalverband eine vom TPL festgelegte Leistung nur auf weitere Rolloutobjekte ausgedehnt, werden nur diese Zuordnungen gelöst
+- Für früher erfasste Zusatzangebote, die nicht als solche erkannt werden (alle Regionalverbände erscheinen als „offen“): Unter „Weitere bankfachliche Leistungen“ stehen je Projekt alle übrigen Leistungen mit Rolloutobjekten, Herkunft der Zuordnung und den Regionalverbänden mit Angabe; der Hinweis „nur x von y RV“ markiert Leistungen, zu denen nur einzelne etwas angegeben haben. Angehakte Leistungen werden aus dem Projekt entfernt und lassen sich als Zusatzangebot neu erfassen
+- Vor dem Zurücksetzen legt die Anwendung automatisch eine Sicherungskopie der Datenbank im Datenordner an (`….vor-rv-zuruecksetzen-<Datum>`). Keine Änderung am Datenbankschema
+
 ## 0.1.78
 
 - Korrektur: Regionalverbände dürfen individuell mehr anbieten, als die Leistungsklasse vorgibt. Meldet ein RV eine Leistung für ein Projekt oder Rolloutobjekt unterhalb ihrer Klasse zurück, bricht der Import nicht mehr ab; die Leistung wird als Zusatzangebot nur dieses RV übernommen

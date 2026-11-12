@@ -135,6 +135,7 @@ function render_rv_import_status(PDO $db): void {
     <div class="d-flex flex-wrap gap-2">
       <button class="btn btn-primary">Stand speichern</button>
       <button class="btn btn-outline-secondary" name="reset" value="1" data-confirm="Alle Häkchen, Daten und Bemerkungen der Liste löschen (z. B. für eine neue Abfragerunde)? Die Angaben der Regionalverbände selbst bleiben erhalten.">Liste zurücksetzen</button>
+      <a class="btn btn-outline-danger ms-auto" href="?page=rv-reset">Angaben der Regionalverbände zurücksetzen …</a>
     </div>
   </form>
   <script>
@@ -676,6 +677,210 @@ function render_rv_view(PDO $db, int $providerId): void {
   window.addEventListener('beforeunload', event => { if (form.dataset.dirty === '1') { event.preventDefault(); event.returnValue = ''; } });
 
   refresh();
+})();
+</script>
+<?php
+}
+
+// ---------------------------------------------------------------------------------------------
+// RV-Angaben zurücksetzen: Rückmeldungen und Zusatzangebote der Regionalverbände entfernen,
+// damit sie neu erfasst werden können. Festlegungen des TPL/Projekts sowie FI und DSV bleiben.
+// ---------------------------------------------------------------------------------------------
+
+/** Vermerk ohne Name der bearbeitenden Person, z. B. „Rückmeldung Regionalverband“. */
+function rv_reset_origin_label(?string $origin): string {
+    $origin = trim((string)$origin);
+    if ($origin === '') return 'ohne Vermerk';
+    return trim(explode(' · ', $origin, 2)[0]);
+}
+
+/**
+ * Was würde zurückgesetzt? Je Projekt die bankfachlichen Leistungen mit Rolloutobjekten, Herkunft der Zuordnung
+ * und den Regionalverbänden mit Angabe. Art: „extra“ = erkanntes Zusatzangebot (wird ganz entfernt),
+ * „mixed“ = vom TPL festgelegt, aber von einem RV auf weitere Rolloutobjekte ausgedehnt (nur diese Zuordnungen
+ * werden entfernt), „other“ = vom TPL/Projekt festgelegt (nur auf ausdrücklichen Wunsch entfernbar).
+ */
+function rv_reset_preview(PDO $db): array {
+    $rvNames = array_column($db->query("SELECT id,name FROM providers WHERE type='RV' ORDER BY sort_order,name")->fetchAll(), 'name', 'id');
+    $activeRv = (int)$db->query("SELECT COUNT(*) FROM providers WHERE type='RV' AND active=1")->fetchColumn();
+    $totals = [
+        'answers' => (int)$db->query("SELECT COUNT(*) FROM project_support_matrix m JOIN providers p ON p.id=m.provider_id AND p.type='RV'")->fetchColumn()
+            + (int)$db->query("SELECT COUNT(*) FROM rollout_object_support_matrix m JOIN providers p ON p.id=m.provider_id AND p.type='RV'")->fetchColumn(),
+        'contacts' => (int)$db->query("SELECT COUNT(*) FROM project_provider_contacts c JOIN providers p ON p.id=c.provider_id AND p.type='RV'")->fetchColumn(),
+        'status' => count(rv_import_status_all($db)),
+        'active_rv' => $activeRv,
+    ];
+    $serviceStmt = $db->prepare('SELECT s.* FROM support_services s JOIN project_services ps ON ps.support_service_id=s.id WHERE ps.project_id=? ORDER BY s.name COLLATE NOCASE');
+    $usageStmt = $db->prepare('SELECT u.support_service_id,u.origin,r.name FROM project_service_rollout_objects u JOIN rollout_objects r ON r.id=u.rollout_object_id WHERE u.project_id=? ORDER BY r.name COLLATE NOCASE');
+    $matrixStmt = $db->prepare("SELECT m.support_service_id,m.provider_id,m.offered,m.delivery_mode FROM project_support_matrix m JOIN providers p ON p.id=m.provider_id AND p.type='RV' WHERE m.project_id=? ORDER BY p.sort_order,p.name");
+    $projects = [];
+    foreach ($db->query('SELECT id,name FROM projects ORDER BY name COLLATE NOCASE')->fetchAll() as $project) {
+        $projectId = (int)$project['id'];
+        $serviceStmt->execute([$projectId]);
+        $services = enrich_support_services($db, $serviceStmt->fetchAll());
+        $usage = [];
+        $usageStmt->execute([$projectId]);
+        foreach ($usageStmt->fetchAll() as $row) $usage[(int)$row['support_service_id']][] = $row;
+        $answered = [];
+        $matrixStmt->execute([$projectId]);
+        foreach ($matrixStmt->fetchAll() as $row) if (!empty($row['offered']) || (string)$row['delivery_mode'] !== '') $answered[(int)$row['support_service_id']][] = $rvNames[(int)$row['provider_id']] ?? '';
+        $additional = rv_additional_services($db, $projectId);
+        $entries = ['extra' => [], 'mixed' => [], 'other' => []];
+        foreach ($services as $service) {
+            $serviceId = (int)$service['id'];
+            if (service_catalog_type($service) !== 'RV' || !empty($service['always_included'])) continue;
+            $objects = []; $rvObjects = []; $origins = [];
+            foreach ($usage[$serviceId] ?? [] as $row) {
+                $objects[] = (string)$row['name'];
+                $origins[rv_reset_origin_label($row['origin'] ?? null)] = true;
+                if (origin_is_rv_addition($row['origin'] ?? null)) $rvObjects[] = (string)$row['name'];
+            }
+            $kind = isset($additional[$serviceId]) ? 'extra' : ($rvObjects ? 'mixed' : 'other');
+            $entries[$kind][] = [
+                'id' => $serviceId,
+                'name' => (string)$service['name'],
+                'own' => empty($service['is_standard']),
+                'kind' => $kind,
+                'objects' => $objects,
+                'rv_objects' => $rvObjects,
+                'origins' => array_keys($origins),
+                'answered' => $answered[$serviceId] ?? [],
+            ];
+        }
+        if ($entries['extra'] || $entries['mixed'] || $entries['other']) $projects[$projectId] = ['name' => (string)$project['name']] + $entries;
+    }
+    return ['totals' => $totals, 'projects' => $projects];
+}
+
+/**
+ * Setzt die Angaben der Regionalverbände zurück. Vorher wird eine vollständige Sicherungskopie der Datenbank
+ * neben der Datenbankdatei abgelegt. $options: answers, contacts, status (bool), remove [Projekt-ID => [Leistungs-IDs]].
+ * Rückgabe: Zähler und Pfad der Sicherung.
+ */
+function rv_reset_apply(PDO $db, string $dbPath, array $options): array {
+    $preview = rv_reset_preview($db);
+    $db->exec('PRAGMA wal_checkpoint(TRUNCATE)');
+    $backup = $dbPath . '.vor-rv-zuruecksetzen-' . date('Ymd-His');
+    $db->exec('VACUUM INTO ' . $db->quote($backup));
+    if (!is_file($backup) || filesize($backup) === 0) throw new RuntimeException('Die Sicherungskopie der Datenbank konnte nicht angelegt werden. Es wurde nichts geändert.');
+
+    $result = ['backup' => $backup, 'services' => 0, 'usages' => 0, 'answers' => 0, 'contacts' => 0, 'status' => false];
+    $db->beginTransaction();
+    try {
+        $usageSelect = $db->prepare('SELECT rollout_object_id,origin FROM project_service_rollout_objects WHERE project_id=? AND support_service_id=?');
+        $usageDelete = $db->prepare('DELETE FROM project_service_rollout_objects WHERE project_id=? AND support_service_id=? AND rollout_object_id=?');
+        $projectServiceDelete = $db->prepare('DELETE FROM project_services WHERE project_id=? AND support_service_id=?');
+        $ownServiceDelete = $db->prepare('DELETE FROM support_services WHERE id=? AND is_standard=0 AND project_id=?');
+        foreach ((array)($options['remove'] ?? []) as $projectId => $serviceIds) {
+            $projectId = (int)$projectId;
+            $known = [];
+            foreach (['extra', 'mixed', 'other'] as $kind) foreach ($preview['projects'][$projectId][$kind] ?? [] as $entry) $known[$entry['id']] = $entry;
+            foreach (array_unique(array_map('intval', (array)$serviceIds)) as $serviceId) {
+                $entry = $known[$serviceId] ?? null;
+                if (!$entry) continue;
+                if ($entry['kind'] === 'mixed') {
+                    // Vom TPL festgelegt: nur die von einem RV ergänzten Rolloutobjekte lösen
+                    $usageSelect->execute([$projectId, $serviceId]);
+                    foreach ($usageSelect->fetchAll() as $row) if (origin_is_rv_addition($row['origin'] ?? null)) {$usageDelete->execute([$projectId, $serviceId, (int)$row['rollout_object_id']]);$result['usages']++;}
+                    continue;
+                }
+                $projectServiceDelete->execute([$projectId, $serviceId]);
+                if ($entry['own']) $ownServiceDelete->execute([$serviceId, $projectId]);
+                $result['services']++;
+            }
+        }
+        if (!empty($options['answers'])) {
+            $result['answers'] = $db->exec("DELETE FROM project_support_matrix WHERE provider_id IN (SELECT id FROM providers WHERE type='RV')")
+                + $db->exec("DELETE FROM rollout_object_support_matrix WHERE provider_id IN (SELECT id FROM providers WHERE type='RV')");
+        }
+        if (!empty($options['contacts'])) $result['contacts'] = $db->exec("DELETE FROM project_provider_contacts WHERE provider_id IN (SELECT id FROM providers WHERE type='RV')");
+        if (!empty($options['status'])) {rv_import_status_save_all($db, []);$result['status'] = true;}
+        $db->commit();
+    } catch (Throwable $error) {
+        if ($db->inTransaction()) $db->rollBack();
+        throw $error;
+    }
+    return $result;
+}
+
+function render_rv_reset(PDO $db): void {
+    $preview = rv_reset_preview($db);
+    $totals = $preview['totals'];
+    $detected = 0; $otherCount = 0;
+    foreach ($preview['projects'] as $project) {$detected += count($project['extra']) + count($project['mixed']);$otherCount += count($project['other']);}
+    $row = static function (int $projectId, array $entry, bool $checked) use ($totals): void {
+        $answered = count($entry['answered']);
+        $partial = $entry['kind'] === 'other' && $answered > 0 && $answered < $totals['active_rv'];
+        ?>
+        <tr>
+          <td class="text-center"><input class="form-check-input" type="checkbox" name="remove[<?=$projectId?>][]" value="<?=$entry['id']?>" <?=$checked ? 'checked' : ''?> data-rv-reset-box aria-label="<?=e($entry['name'] . ' entfernen')?>"></td>
+          <td><span class="fw-semibold"><?=e($entry['name'])?></span>
+            <?php if ($entry['own']): ?><span class="badge text-bg-light border ms-1">projekteigen</span><?php endif; ?>
+            <?php if ($entry['kind'] === 'mixed'): ?><div class="small text-secondary">Vom TPL/Projekt festgelegt. Entfernt werden nur die von einem Regionalverband ergänzten Rolloutobjekte: <?=e(implode(', ', $entry['rv_objects']))?></div><?php endif; ?>
+          </td>
+          <td class="small"><?=$entry['objects'] ? e(implode(', ', $entry['objects'])) : '<span class="text-secondary">ohne Rolloutobjekt</span>'?></td>
+          <td class="small"><?=$entry['origins'] ? e(implode(', ', $entry['origins'])) : '<span class="text-secondary">–</span>'?></td>
+          <td class="small"><?=$entry['answered'] ? e(implode(', ', $entry['answered'])) : '<span class="text-secondary">noch keine</span>'?>
+            <?php if ($partial): ?><div><span class="badge text-bg-warning">nur <?=$answered?> von <?=$totals['active_rv']?> RV</span></div><?php endif; ?>
+          </td>
+        </tr>
+        <?php
+    };
+    $head = '<thead><tr><th class="text-center" style="width:5rem">Entfernen</th><th>Rolloutleistung</th><th>Rolloutobjekte</th><th>Herkunft der Zuordnung</th><th>Angaben von</th></tr></thead>';
+    ?>
+<div class="mb-4">
+  <a class="small" href="?page=import#rv-stand">← zurück zum Import</a>
+  <h1 class="page-title h2 mb-1 mt-2">Angaben der Regionalverbände zurücksetzen</h1>
+  <p class="text-secondary mb-0" style="max-width:60rem">Entfernt die Rückmeldungen der Regionalverbände und ihre Zusatzangebote, damit Sie sie neu erfassen können (RV-Dateien erneut importieren oder RV-Sicht). Was der TPL bzw. das Projekt festgelegt hat – Rolloutobjekte, Klassen, vorgesehene Leistungen – sowie alle Angaben von FI und DSV bleiben unverändert. Vor dem Zurücksetzen legt die Anwendung automatisch eine Sicherungskopie der Datenbank an.</p>
+</div>
+<form method="post" class="vstack gap-4">
+  <?=csrf_field()?>
+  <input type="hidden" name="action" value="rv_reset">
+  <section class="card p-4">
+    <h2 class="h5 mb-3">1. Rückmeldungen</h2>
+    <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="answers" value="1" id="rv-reset-answers" checked><label class="form-check-label" for="rv-reset-answers">Angaben aller Regionalverbände löschen (Bereitstellungsart, Partner, Termin, Bemerkung) – <strong><?=$totals['answers']?></strong> Angabe(n). Danach sind alle abgefragten Leistungen wieder „offen“.</label></div>
+    <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="status" value="1" id="rv-reset-status" checked><label class="form-check-label" for="rv-reset-status">Stand der Rückmeldungen leeren (Häkchen „übernommen“, Datum, Weg) – <?=$totals['status']?> Eintrag/Einträge</label></div>
+    <div class="form-check"><input class="form-check-input" type="checkbox" name="contacts" value="1" id="rv-reset-contacts"><label class="form-check-label" for="rv-reset-contacts">Auch die Ansprechpartner der Regionalverbände je Projekt löschen – <?=$totals['contacts']?> Eintrag/Einträge. Die Rollout-Ansprechpartner unter „Leistungserbringer“ bleiben in jedem Fall erhalten.</label></div>
+  </section>
+
+  <section class="card p-4">
+    <h2 class="h5 mb-1">2. Zusatzangebote einzelner Regionalverbände</h2>
+    <p class="text-secondary small mb-3">Leistungen, die laut Herkunftsvermerk nur aus einer RV-Rückmeldung oder der RV-Sicht stammen. Sie werden aus dem Projekt entfernt; projekteigene Leistungen werden dabei gelöscht, Katalogleistungen bleiben im Katalog.</p>
+    <?php if (!$detected): ?><div class="alert alert-light border small mb-0">Es wurden keine Zusatzangebote erkannt.</div><?php else: ?>
+    <?php foreach ($preview['projects'] as $projectId => $project): $entries = array_merge($project['extra'], $project['mixed']); if (!$entries) continue; ?>
+      <h3 class="h6 mt-3 mb-2"><?=e($project['name'])?></h3>
+      <div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0"><?=$head?><tbody><?php foreach ($entries as $entry) $row($projectId, $entry, true); ?></tbody></table></div>
+    <?php endforeach; ?>
+    <?php endif; ?>
+  </section>
+
+  <section class="card p-4">
+    <h2 class="h5 mb-1">3. Weitere bankfachliche Leistungen in den Projekten</h2>
+    <p class="text-secondary small mb-3">Diese Leistungen gelten als vom TPL bzw. Projekt festgelegt – alle Regionalverbände werden dazu gefragt. Ist darunter eine Leistung, die in Wahrheit nur ein Regionalverband zusätzlich anbietet (früher erfasst, Herkunft z. B. „Projektmatrix“ oder „ohne Vermerk“), haken Sie sie hier an: Sie wird dann aus dem Projekt entfernt und kann als Zusatzangebot neu erfasst werden. Der Hinweis „nur x von <?=$totals['active_rv']?> RV“ zeigt Leistungen, zu denen bisher nur einzelne Regionalverbände etwas angegeben haben. Nichts anhaken, wenn Sie unsicher sind – ein versehentlich entferntes TPL-Thema kommt nur über den TPL-/PL-Import oder die Projektmatrix zurück.</p>
+    <?php if (!$otherCount): ?><div class="alert alert-light border small mb-0">Keine weiteren Leistungen.</div><?php else: ?>
+    <?php foreach ($preview['projects'] as $projectId => $project): if (!$project['other']) continue;
+        $hints = count(array_filter($project['other'], static fn(array $entry): bool => count($entry['answered']) > 0 && count($entry['answered']) < $totals['active_rv'])); ?>
+      <details class="border rounded mb-2">
+        <summary class="px-3 py-2"><span class="fw-semibold"><?=e($project['name'])?></span> <span class="text-secondary small">· <?=count($project['other'])?> Leistung(en)</span><?php if ($hints): ?> <span class="badge text-bg-warning ms-1"><?=$hints?> nur teilweise beantwortet</span><?php endif; ?></summary>
+        <div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0"><?=$head?><tbody><?php foreach ($project['other'] as $entry) $row($projectId, $entry, false); ?></tbody></table></div>
+      </details>
+    <?php endforeach; ?>
+    <?php endif; ?>
+  </section>
+
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <button class="btn btn-danger" data-confirm="Die ausgewählten Angaben der Regionalverbände jetzt endgültig zurücksetzen? Vorher wird eine Sicherungskopie der Datenbank angelegt.">Zurücksetzen</button>
+    <a class="btn btn-outline-secondary" href="?page=import#rv-stand">Abbrechen</a>
+    <span class="small text-secondary" data-rv-reset-count></span>
+  </div>
+</form>
+<script>
+(() => {
+  const boxes = [...document.querySelectorAll('[data-rv-reset-box]')];
+  const out = document.querySelector('[data-rv-reset-count]');
+  const update = () => { out.textContent = boxes.filter(box => box.checked).length + ' Leistung(en) zum Entfernen ausgewählt'; };
+  boxes.forEach(box => box.addEventListener('change', update));
+  update();
 })();
 </script>
 <?php
