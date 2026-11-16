@@ -908,7 +908,7 @@ function overview_project_data(PDO $db,int $projectId): array {
         }
         foreach([['FI',$fi,'technical','fi_class_code'],['DSV',$dsv,'dsv','dsv_class_code']] as [$type,$provider,$dimension,$objectField]){
             if(!$provider||!in_array($type,$targets,true))continue;$perObject=[];$origins=[];
-            foreach($objects as $object){$applicable=service_applies_to_provider($service,$provider,$object);$cell=$objectMatrix[(int)$object['id']][(int)$service['id']][(int)$provider['id']]??null;$perObject[(int)$object['id']]=!$applicable?'na':(!empty($cell['offered'])?'planned':(isset($usage[(int)$service['id']][(int)$object['id']])?'open':'none'));$origins[(int)$object['id']]=$cell?origin_text($cell['origin']??null,$cell['origin_at']??null):($usageOrigins[(int)$service['id']][(int)$object['id']]??'');}
+            foreach($objects as $object){$applicable=service_applies_to_provider($service,$provider,$object);$cell=$objectMatrix[(int)$object['id']][(int)$service['id']][(int)$provider['id']]??null;$perObject[(int)$object['id']]=!$applicable?'na':((!empty($cell['offered'])||isset($usage[(int)$service['id']][(int)$object['id']]))?'planned':'none');$origins[(int)$object['id']]=$cell?origin_text($cell['origin']??null,$cell['origin_at']??null):($usageOrigins[(int)$service['id']][(int)$object['id']]??'');}
             $entry=['service'=>$service,'class'=>$classRank($service,$dimension),'objects'=>$perObject,'origins'=>$origins];if($type==='FI')$fiServices[]=$entry;else$dsvServices[]=$entry;
         }
     }
@@ -931,7 +931,7 @@ function pptx_status_styles(): array {
         'self'=>['009864','FFFFFF','✓','Zugesagt – selbst'],'other_rv'=>['2C57D2','FFFFFF','↪','Über anderen RV'],
         'external'=>['00ACD3','FFFFFF','E','Externer Dienstleister'],'open'=>['FFC900','000000','?','Offen'],'none'=>['EE0000','FFFFFF','✕','Keine Bereitstellung'],
         'central'=>['D9D9D9','000000','Z','Zentral'],'na'=>['F2F2F2','7F7F7F','–','Nicht relevant'],'extra'=>['FFFFFF','A6A6A6','·','Nicht abgefragt (Zusatz)'],
-        'planned'=>['009864','FFFFFF','✓','Geplant'],'fi_open'=>['FFC900','000000','?','Vorgesehen, noch nicht geplant'],'fi_none'=>['FFFFFF','7F7F7F','·','Nicht vorgesehen'],
+        'planned'=>['009864','FFFFFF','✓','Vorgesehen'],'fi_none'=>['FFFFFF','7F7F7F','·','Nicht vorgesehen'],
     ];
 }
 
@@ -1022,12 +1022,12 @@ function download_project_pptx(PDO $db,int $projectId): never {
             $block=['_block_head'=>true,['text'=>$type,'bold'=>true,'fill'=>'D9D9D9'],['text'=>'Klasse','fill'=>'D9D9D9','size'=>7,'align'=>'ctr']];foreach($objects as $o){$code=(string)($o[$field]??'');$block[]=['text'=>$code===''?'–':($type==='DSV'?(string)($dsvLabels[$code]??$code):$code),'fill'=>'D9D9D9','align'=>'ctr','bold'=>true];}
             $rows[]=$block;
             if(!$entries)$rows[]=[['text'=>'Keine '.$type.'-Leistungen im Projekt','color'=>'7F7F7F','span'=>2+count($objects)]];
-            foreach($entries as $entry){$row=[['text'=>$short((string)$entry['service']['name'],48)],['text'=>$entry['class']==='~'?'':($type==='DSV'?(string)($dsvLabels[$entry['class']]??$entry['class']):(string)$entry['class']),'align'=>'ctr']];foreach($objects as $o){$state=$entry['objects'][(int)$o['id']]??'na';$key=['planned'=>'planned','open'=>'fi_open','none'=>'fi_none','na'=>'na'][$state]??'na';[$fill,$color,$symbol]=$styles[$key];$row[]=['text'=>$symbol,'fill'=>$fill,'color'=>$color,'align'=>'ctr','bold'=>true];}$rows[]=$row;}
+            foreach($entries as $entry){$row=[['text'=>$short((string)$entry['service']['name'],48)],['text'=>$entry['class']==='~'?'':($type==='DSV'?(string)($dsvLabels[$entry['class']]??$entry['class']):(string)$entry['class']),'align'=>'ctr']];foreach($objects as $o){$state=$entry['objects'][(int)$o['id']]??'na';$key=['planned'=>'planned','none'=>'fi_none','na'=>'na'][$state]??'na';[$fill,$color,$symbol]=$styles[$key];$row[]=['text'=>$symbol,'fill'=>$fill,'color'=>$color,'align'=>'ctr','bold'=>true];}$rows[]=$row;}
         }
         $rowH=230000;$tableY=$Y+330000;$capacity=intdiv($BOTTOM-$tableY-400000,$rowH);
         foreach(pptx_paginate($rows,$capacity,$capacity) as $pageRows)$slides[]=[$cols,$head,$pageRows];
     }
-    $fiLegend=$legend($Y+20000,['planned','fi_open','fi_none','na']);
+    $fiLegend=$legend($Y+20000,['planned','fi_none','na']);
     foreach($slides as $i=>[$cols,$head,$rows]){$rows=array_map(static function(array $row):array{$cont=!empty($row['_cont']);unset($row['_block_head'],$row['_cont']);if($cont)$row[0]['text'].=' (Fortsetzung)';return $row;},$rows);$deck->addSlide($topline,$pageTitle('Leistungen von FI und DSV',$i,count($slides)),'FI: '.$plural(count($data['fi_services']),'Leistung','Leistungen').' · DSV: '.$plural(count($data['dsv_services']),'Leistung','Leistungen'),$source,$fiLegend.$deck->table($X,$tableY,$cols,array_merge([$head],$rows),$rowH,8));}
 
     $footer='Synchronisation Rollout | '.$name.' | '.$date;
@@ -1037,7 +1037,7 @@ function download_project_pptx(PDO $db,int $projectId): never {
 /**
  * PowerPoint „Offene Punkte“ über alle Projekte (Vorlage „Synchronisation Rollout“):
  * eine Folie Gesamtstatistik und Meldungen der Regionalverbände, danach je Projekt mit offenen Punkten
- * nur die Leistungen, bei denen RV-Angaben offen sind oder eine Bereitstellung fehlt (sowie noch nicht geplante FI-/DSV-Leistungen).
+ * nur die Leistungen, bei denen RV-Angaben offen sind oder eine Bereitstellung fehlt.
  */
 function download_open_points_pptx(PDO $db): never {
     $projectIds=array_map('intval',$db->query('SELECT id FROM projects ORDER BY name COLLATE NOCASE')->fetchAll(PDO::FETCH_COLUMN));
@@ -1061,7 +1061,7 @@ function download_open_points_pptx(PDO $db): never {
 
     // Daten je Projekt sammeln
     $projects=[];$rvProviders=[];
-    $total=['objects'=>0,'regional'=>0,'required'=>0,'committed'=>0,'open'=>0,'none'=>0,'fidsv'=>0];
+    $total=['objects'=>0,'regional'=>0,'required'=>0,'committed'=>0,'open'=>0,'none'=>0];
     $byProvider=[];
     foreach($projectIds as $projectId){
         $data=overview_project_data($db,$projectId);$rvProviders=$data['rv_providers'];
@@ -1070,11 +1070,9 @@ function download_open_points_pptx(PDO $db): never {
         $gapEntries=array_values(array_filter($regional,fn($e)=>(bool)$e['gaps']));
         $open=0;$none=0;
         foreach($regional as $entry)foreach($entry['gaps'] as $providerId=>$key){if($key==='none')$none++;else$open++;$byProvider[(int)$providerId][$key==='none'?'none':'open']=($byProvider[(int)$providerId][$key==='none'?'none':'open']??0)+1;$byProvider[(int)$providerId]['projects'][$projectId]=true;}
-        $fiDsvOpen=[];
-        foreach([['FI',$data['fi_services']],['DSV',$data['dsv_services']]] as [$type,$entries])foreach($entries as $entry){$ids=array_keys(array_filter($entry['objects'],fn($state)=>$state==='open'));if($ids)$fiDsvOpen[]=['type'=>$type,'entry'=>$entry,'objects'=>array_map(fn($id)=>$objectNames[$id]??'',$ids)];}
         $required=array_sum(array_column($regional,'required'));$committed=array_sum(array_column($regional,'committed'));
-        $projects[]=['data'=>$data,'regional'=>$regional,'gaps'=>$gapEntries,'open'=>$open,'none'=>$none,'fidsv'=>$fiDsvOpen,'required'=>$required,'committed'=>$committed,'slide'=>0];
-        $total['objects']+=count($data['objects']);$total['regional']+=count($regional);$total['required']+=$required;$total['committed']+=$committed;$total['open']+=$open;$total['none']+=$none;$total['fidsv']+=count($fiDsvOpen);
+        $projects[]=['data'=>$data,'regional'=>$regional,'gaps'=>$gapEntries,'open'=>$open,'none'=>$none,'required'=>$required,'committed'=>$committed,'slide'=>0];
+        $total['objects']+=count($data['objects']);$total['regional']+=count($regional);$total['required']+=$required;$total['committed']+=$committed;$total['open']+=$open;$total['none']+=$none;
     }
 
     // Projektfolien vorbereiten (nur Projekte mit offenen Punkten), damit die Übersicht auf sie verweisen kann
@@ -1089,7 +1087,7 @@ function download_open_points_pptx(PDO $db): never {
     $rowH=230000;$tableY=$Y+330000;$capacity=intdiv($BOTTOM-$tableY-340000,$rowH);
     $projectSlides=[];
     foreach($projects as $index=>$project){
-        if(!$project['gaps']&&!$project['fidsv'])continue;
+        if(!$project['gaps'])continue;
         $rows=[];
         if($project['gaps']){
             $rows[]=['_block_head'=>true,['text'=>'Regionalverbände – Angabe offen oder keine Bereitstellung','bold'=>true,'fill'=>'D9D9D9','span'=>2+$span]];
@@ -1097,15 +1095,10 @@ function download_open_points_pptx(PDO $db): never {
                 foreach($rvProviders as $provider){$cell=$entry['cells'][(int)$provider['id']]??['key'=>'na'];[$fill,$color,$symbol]=$styles[$cell['key']]??$styles['open'];$row[]=['text'=>$symbol,'fill'=>$fill,'color'=>$color,'align'=>'ctr','bold'=>true];}
                 $row[]=['text'=>(string)count($entry['gaps']),'align'=>'ctr','bold'=>true,'color'=>'EE0000'];$rows[]=$row;}
         }
-        if($project['fidsv']){
-            $rows[]=['_block_head'=>true,['text'=>'FI und DSV – vorgesehen, noch nicht geplant','bold'=>true,'fill'=>'D9D9D9','span'=>2+$span]];
-            foreach($project['fidsv'] as $item){$entry=$item['entry'];$class=$entry['class']==='~'?'':($item['type']==='DSV'?(string)($dsvLabels[$entry['class']]??$entry['class']):(string)$entry['class']);
-                $rows[]=[['text'=>$short($item['type'].' · '.(string)$entry['service']['name'],48)],['text'=>$class,'align'=>'ctr'],['text'=>$short('noch offen an: '.implode(', ',$item['objects']),170),'span'=>$span,'fill'=>'FFF4CC','color'=>'000000']];}
-        }
         $pages=pptx_paginate($rows,$capacity,$capacity);
         $projects[$index]['pages']=count($pages);
         $name=(string)$project['data']['project']['name'];
-        $sub=implode(' · ',array_filter([$project['open']?$plural($project['open'],'offene RV-Angabe','offene RV-Angaben'):'',$project['none']?$plural($project['none'],'fehlende Bereitstellung','fehlende Bereitstellungen'):'',$project['fidsv']?$plural(count($project['fidsv']),'FI-/DSV-Leistung noch nicht geplant','FI-/DSV-Leistungen noch nicht geplant'):'',trim((string)$project['data']['project']['rollout_lead'])!==''?'TPL Rollout: '.$project['data']['project']['rollout_lead']:'']));
+        $sub=implode(' · ',array_filter([$project['open']?$plural($project['open'],'offene RV-Angabe','offene RV-Angaben'):'',$project['none']?$plural($project['none'],'fehlende Bereitstellung','fehlende Bereitstellungen'):'',trim((string)$project['data']['project']['rollout_lead'])!==''?'TPL Rollout: '.$project['data']['project']['rollout_lead']:'']));
         foreach($pages as $i=>$pageRows)$projectSlides[]=['project'=>$index,'title'=>$pageTitle('Offene Punkte: '.$name,$i,count($pages)),'sub'=>$sub,'rows'=>$stripRows($pageRows)];
     }
 
@@ -1120,8 +1113,8 @@ function download_open_points_pptx(PDO $db): never {
     $leftW=6350000;$rightX=$X+$leftW+250000;$rightW=$W-$leftW-250000;
     $statRowH=245000;$statHeadH=320000;
     $th=static fn(string $text,string $align='ctr'):array=>['text'=>$text,'bold'=>true,'fill'=>'F2F2F2','align'=>$align,'size'=>8];
-    $projectHead=['_height'=>$statHeadH,$th('Projekt','l'),$th('Regional'),$th('zugesagt'),$th('offen'),$th('keine Bereit.'),$th('FI/DSV offen'),$th('Folie / ✓')];
-    $projectCols=[$leftW-6*660000,660000,660000,660000,660000,660000,660000];
+    $projectHead=['_height'=>$statHeadH,$th('Projekt','l'),$th('Regional'),$th('zugesagt'),$th('offen'),$th('keine Bereit.'),$th('Folie / ✓')];
+    $projectCols=[$leftW-5*660000,660000,660000,660000,660000,660000];
     $firstSlideNo=2;$statPages=pptx_paginate_fill(array_keys($projects),max(1,intdiv($BOTTOM-$tablesY-$statHeadH,$statRowH)),intdiv($BOTTOM-$Y-$statHeadH,$statRowH));
     $slideNo=$firstSlideNo+count($statPages);$seen=[];
     foreach($projectSlides as $slide)if(!isset($seen[$slide['project']])){$seen[$slide['project']]=true;$projects[$slide['project']]['slide']=$slideNo++;}else$slideNo++;
@@ -1135,8 +1128,8 @@ function download_open_points_pptx(PDO $db): never {
     $statSub=$returned.' von '.count($statusRows).' RV zurückgemeldet · '.$plural(count($seen),'Projekt','Projekte').' mit offenen Punkten';
     foreach($statPages as $i=>$indexes){
         $rows=[];
-        foreach($indexes as $index){$project=$projects[$index];$p=$project['required']?(int)round($project['committed']*100/$project['required']):null;$complete=!$project['gaps']&&!$project['fidsv'];
-            $rows[]=[['text'=>$short((string)$project['data']['project']['name'],46)],['text'=>(string)count($project['regional']),'align'=>'ctr'],['text'=>$p===null?'–':$p.' %','align'=>'ctr','bold'=>true,'color'=>$p===null?'7F7F7F':($p===100?'009864':'000000')],$cell($project['open'],'B38D00'),$cell($project['none'],'EE0000'),$cell(count($project['fidsv']),'B38D00'),['text'=>$complete?'✓':(string)$project['slide'],'align'=>'ctr','fill'=>$complete?'009864':null,'color'=>$complete?'FFFFFF':'000000','bold'=>true]];}
+        foreach($indexes as $index){$project=$projects[$index];$p=$project['required']?(int)round($project['committed']*100/$project['required']):null;$complete=!$project['gaps'];
+            $rows[]=[['text'=>$short((string)$project['data']['project']['name'],46)],['text'=>(string)count($project['regional']),'align'=>'ctr'],['text'=>$p===null?'–':$p.' %','align'=>'ctr','bold'=>true,'color'=>$p===null?'7F7F7F':($p===100?'009864':'000000')],$cell($project['open'],'B38D00'),$cell($project['none'],'EE0000'),['text'=>$complete?'✓':(string)$project['slide'],'align'=>'ctr','fill'=>$complete?'009864':null,'color'=>$complete?'FFFFFF':'000000','bold'=>true]];}
         $shapes=$deck->table($X,$i===0?$tablesY:$Y,$projectCols,array_merge([$projectHead],$rows),$statRowH,8);
         if($i===0)$shapes=$top.$deck->box($X,$tablesY-260000,$leftW,240000,null,[['text'=>'Projekte','size'=>10,'bold'=>true]],['inset'=>0,'anchor'=>'b','name'=>'Überschrift Projekte'])
             .$shapes.$deck->box($rightX,$tablesY-260000,$rightW,240000,null,[['text'=>'Meldungen der Regionalverbände','size'=>10,'bold'=>true]],['inset'=>0,'anchor'=>'b','name'=>'Überschrift Meldungen'])
@@ -1313,9 +1306,9 @@ function render_overview(PDO $db,int $projectId,int $objectId=0,string $area='AL
 
 <?php foreach([['FI',$data['fi'],$data['fi_services'],'fi_class_code'],['DSV',$data['dsv'],$data['dsv_services'],'dsv_class_code']] as [$type,$provider,$entries,$field]):if(!$show($type))continue;$labels=$type==='DSV'?array_column(provider_class_levels($db,'DSV',true),'class_label','class_code'):[];if($objectId)$entries=array_values(array_filter($entries,fn($entry)=>($entry['objects'][$objectId]??'na')!=='na'));?>
 <section class="card p-3 p-lg-4 mb-4 ov-block ov-block-<?=strtolower($type)?>"><h2 class="h5 mb-1"><?=$type?></h2><p class="small text-secondary">Leistungen <?=$type==='FI'?'der FI':'des DSV'?> (immer zentral). Je Rolloutobjekt: Was ist geplant? Kopfzeile mit der <?=$type?>-Rolloutklasse des Objekts.</p>
-<div class="d-flex flex-wrap gap-2 small mb-3"><span class="ov-legend"><span class="ov-cell ov-self">✓</span> Geplant</span><span class="ov-legend"><span class="ov-cell ov-open">?</span> Vorgesehen, aber noch keine Planung</span><span class="ov-legend"><span class="ov-cell ov-empty">·</span> Nicht vorgesehen</span><span class="ov-legend"><span class="ov-cell ov-na">–</span> Für die Klasse nicht relevant</span></div>
+<div class="d-flex flex-wrap gap-2 small mb-3"><span class="ov-legend"><span class="ov-cell ov-self">✓</span> Vorgesehen</span><span class="ov-legend"><span class="ov-cell ov-empty">·</span> Nicht vorgesehen</span><span class="ov-legend"><span class="ov-cell ov-na">–</span> Für die Klasse nicht relevant</span></div>
 <?php if(!$entries):?><p class="text-secondary mb-0">Keine <?=$type?>-Leistungen<?=$objectId?' für dieses Rolloutobjekt':' im Projekt'?>.</p><?php else:?><div class="table-responsive"><table class="table table-sm align-middle ov-table mb-0"><thead><tr><th style="min-width:18rem">Leistung</th><?php foreach($objects as $object):$code=(string)($object[$field]??'');?><th class="text-center" style="min-width:8rem"><?=e($object['name'])?><div class="fw-normal text-secondary">Klasse <?=e($code===''?'–':($type==='DSV'?($labels[$code]??$code):$code))?></div></th><?php endforeach;?></tr></thead><tbody>
-<?php foreach($entries as $entry):?><tr><td><strong><?=e($entry['service']['name'])?></strong><?=$entry['class']!=='~'?' <span class="badge text-bg-light border">ab '.e($type==='DSV'?($labels[$entry['class']]??$entry['class']):$entry['class']).'</span>':''?> <?=$dupFor($entry['service'])?></td><?php foreach($objects as $object):$state=$entry['objects'][(int)$object['id']]??'na';$view=['planned'=>['✓','ov-self','Geplant'],'open'=>['?','ov-open','Vorgesehen, noch keine Planung'],'none'=>['·','ov-empty','Nicht vorgesehen'],'na'=>['–','ov-na','Nicht relevant']][$state];?><?php $cellOrigin=(string)($entry['origins'][(int)$object['id']]??'');?><td class="text-center"><span class="ov-cell <?=$view[1]?>" title="<?=e($object['name'].': '.$view[2].($cellOrigin!==''?' ('.$cellOrigin.')':''))?>"><?=e($view[0])?></span><?php if($objectId&&$cellOrigin!==''):?><div class="origin-note"><?=e($cellOrigin)?></div><?php endif;?></td><?php endforeach;?></tr><?php endforeach;?></tbody></table></div><?php endif;?></section>
+<?php foreach($entries as $entry):?><tr><td><strong><?=e($entry['service']['name'])?></strong><?=$entry['class']!=='~'?' <span class="badge text-bg-light border">ab '.e($type==='DSV'?($labels[$entry['class']]??$entry['class']):$entry['class']).'</span>':''?> <?=$dupFor($entry['service'])?></td><?php foreach($objects as $object):$state=$entry['objects'][(int)$object['id']]??'na';$view=['planned'=>['✓','ov-self','Vorgesehen'],'none'=>['·','ov-empty','Nicht vorgesehen'],'na'=>['–','ov-na','Nicht relevant']][$state];?><?php $cellOrigin=(string)($entry['origins'][(int)$object['id']]??'');?><td class="text-center"><span class="ov-cell <?=$view[1]?>" title="<?=e($object['name'].': '.$view[2].($cellOrigin!==''?' ('.$cellOrigin.')':''))?>"><?=e($view[0])?></span><?php if($objectId&&$cellOrigin!==''):?><div class="origin-note"><?=e($cellOrigin)?></div><?php endif;?></td><?php endforeach;?></tr><?php endforeach;?></tbody></table></div><?php endif;?></section>
 <?php endforeach;?>
 <?php }
 
@@ -1576,7 +1569,7 @@ function provider_template_rows(PDO $db,array $provider): array {
         $serviceRows=[];
         foreach($projectServices as $service){
             $forProvider=(service_applies_to_provider($service,$provider,$projectClassObject)||(isset($additional[(int)$service['id']][(int)$provider['id']])&&in_array('RV',(array)$service['provider_targets'],true)))&&rv_service_asked($additional,(int)$service['id'],(int)$provider['id']);$delivery=$deliveryMap[(int)$service['id']]??['regional'=>[],'central'=>[],'rv_required'=>true];$centralOnly=$forProvider&&!$delivery['rv_required'];if($centralOnly)$forProvider=false;
-            [$fiInfo,$dsvInfo]=$serviceInfo((int)$project['id'],(int)$service['id']);if(in_array('FI',(array)$service['provider_targets'],true)&&$fiInfo==='')$fiInfo='Noch keine Rückmeldung';if(in_array('DSV',(array)$service['provider_targets'],true)&&$dsvInfo==='')$dsvInfo='Noch keine Rückmeldung';
+            [$fiInfo,$dsvInfo]=$serviceInfo((int)$project['id'],(int)$service['id']);if(in_array('FI',(array)$service['provider_targets'],true)&&$fiInfo==='')$fiInfo='vorgesehen';if(in_array('DSV',(array)$service['provider_targets'],true)&&$dsvInfo==='')$dsvInfo='vorgesehen';
             if(!$forProvider&&!$centralOnly&&$fiInfo===''&&$dsvInfo==='')continue;
             $serviceType=service_catalog_type($service)??((array)$service['provider_targets'])[0]??'RV';$block=$serviceType==='RV'?($centralOnly||!service_regional_capable($service)?0:1):($serviceType==='FI'?2:3);
             $showDelivery=$forProvider&&!empty($service['requires_delivery_source']);$informationOnly=!$forProvider;

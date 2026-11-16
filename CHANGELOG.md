@@ -1,5 +1,13 @@
 # Änderungsverlauf
 
+## 0.1.81
+
+- Korrektur: Leistungen von FI und DSV gelten nicht mehr als „offen“. Sie werden zentral erbracht; ist eine Leistung an einem Rolloutobjekt vorgesehen (Projektmatrix oder TPL-/PL-Import), ist sie damit eingeplant – eine gesonderte Planungsangabe von FI bzw. DSV ist dafür nicht nötig
+- „Offene Punkte aller Projekte“: Der Block „FI und DSV – vorgesehen, noch nicht geplant“ (gelbe Zeilen „noch offen an: …“) entfällt, ebenso der Zusatz im Untertitel und die Spalte „FI/DSV offen“ der Gesamtstatistik. Ein Projekt erhält nur noch dann eine eigene Folie, wenn RV-Angaben offen sind oder eine Bereitstellung fehlt
+- Übersicht und Projekt-PowerPoint: Bei FI und DSV gibt es nur noch „Vorgesehen“ (✓), „Nicht vorgesehen“ und „Nicht relevant“; das gelbe „Vorgesehen, aber noch keine Planung“ entfällt
+- RV-Datei: In den Informationsspalten zu FI und DSV steht „vorgesehen“ statt „Noch keine Rückmeldung“
+- Keine Änderung am Datenbankschema
+
 ## 0.1.80
 
 - RV-Sicht: Unter „+ Weitere Leistung ergänzen“ stehen jetzt auch Katalogleistungen oberhalb der Projektklasse zur Auswahl (z. B. eine Leistung ab Klasse C in einem Projekt, dessen Rolloutobjekte nur Klasse B haben) – in einer eigenen Gruppe „Oberhalb der Projektklasse (Zusatzangebot nur dieses Regionalverbands)“. Damit lässt sich von Hand erfassen, was der Importassistent seit 0.1.78 schon übernimmt

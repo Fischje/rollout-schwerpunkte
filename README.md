@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.80
+# Rollout-Schwerpunkte 0.1.81
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -252,8 +252,9 @@ zugesagter Anteil der RV-Angaben, offene Angaben, fehlende Bereitstellungen, ein
 RV-Rückmeldungen), einer Tabelle je Projekt mit Verweis auf die Projektfolie und dem Stand
 der Rückmeldungen je Regionalverband. Danach folgt je Projekt mit offenen Punkten eine Folie
 mit nur den Leistungen, bei denen eine RV-Angabe offen ist oder keine Bereitstellung zugesagt
-wurde (RV-Matrix mit Symbolen), sowie FI-/DSV-Leistungen, die vorgesehen, aber noch nicht
-geplant sind. Vollständige Projekte erhalten keine eigene Folie.
+wurde (RV-Matrix mit Symbolen). Leistungen von FI und DSV werden zentral erbracht und gelten
+als eingeplant, sobald sie an einem Rolloutobjekt vorgesehen sind – sie sind nie „offen“.
+Vollständige Projekte erhalten keine eigene Folie.
 
 Unter „Import/Export → Export“ (Phase 4) erzeugt „Projekttabelle als PowerPoint“ die Tabelle
 aller Projekte mit Rolloutobjekten, Rollout-Klasse (bankfachlich), Rollout-Beginn
@@ -364,7 +365,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.80**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.81**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.
