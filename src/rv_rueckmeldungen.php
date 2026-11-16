@@ -206,14 +206,16 @@ function rv_view_data(PDO $db, array $provider): array {
         }
         uasort($services, static fn($a, $b) => strnatcmp(export_class_rank($a, 'RV'), export_class_rank($b, 'RV')) ?: strnatcasecmp((string)$a['name'], (string)$b['name']));
 
-        // Ergänzbar: regionale Katalogleistungen, die zur Projektklasse passen und noch nicht im Projekt sind
-        // (oder dort nur Zusatzangebot anderer Regionalverbände sind – dieser RV kann sie ebenfalls anbieten)
+        // Ergänzbar: regionale Katalogleistungen, die noch nicht im Projekt sind (oder dort nur Zusatzangebot anderer
+        // Regionalverbände sind – dieser RV kann sie ebenfalls anbieten). Auch Leistungen oberhalb der Projektklasse:
+        // Ein Regionalverband darf mehr anbieten, als die Klasse vorgibt („above_class“ kennzeichnet sie).
         $inProject = [];
         foreach ($projectServices as $service) if (rv_service_asked($additional, (int)$service['id'], $providerId)) $inProject[(int)$service['id']] = true;
         $catalog = [];
         foreach ($standardServices as $service) {
             if (isset($inProject[(int)$service['id']]) || !service_regional_capable($service) || ($service['default_delivery'] ?? 'regional') === 'central') continue;
-            if (!service_applies_to_provider($service, $provider, $classObject)) continue;
+            if (!service_applies_to_provider($service, $provider)) continue;
+            $service['above_class'] = !service_applies_to_provider($service, $provider, $classObject);
             $catalog[(int)$service['id']] = $service;
         }
         uasort($catalog, static fn($a, $b) => strnatcmp(export_class_rank($a, 'RV'), export_class_rank($b, 'RV')) ?: strnatcasecmp((string)$a['name'], (string)$b['name']));
@@ -293,11 +295,14 @@ function rv_view_add_entry(PDO $db, array $projectData, array $provider, array $
     } else {
         $service = $projectData['catalog'][(int)$choice] ?? null;
         if (!$service) throw new RuntimeException('Projekt „' . $projectName . '“: Die gewählte Katalogleistung passt nicht zum Projekt.');
-        $targets = $chosen ?: array_values($classified);
+        // Katalogleistung: Der RV darf sie auch an Rolloutobjekten anbieten, deren Klasse unter der Leistungsklasse liegt.
+        // Ausdrücklich gewählte Objekte gelten daher immer; ohne Auswahl die passenden, sonst (Leistung liegt über allen) alle.
+        $fitting = array_values(array_filter($classified, static fn(array $object): bool => service_applies_to_rollout_object($service, $object)));
+        $targets = $chosen ?: ($fitting ?: array_values($classified));
     }
 
     $serviceId = (int)$service['id'];
-    $targets = array_values(array_filter($targets, static fn(array $object): bool => service_applies_to_rollout_object($service, $object)));
+    if ($choice === 'custom') $targets = array_values(array_filter($targets, static fn(array $object): bool => service_applies_to_rollout_object($service, $object)));
     if (!$targets) throw new RuntimeException('Projekt „' . $projectName . '“: „' . $service['name'] . '“ passt zu keinem der gewählten Rolloutobjekte (Rolloutklasse prüfen).');
     $db->prepare('INSERT OR IGNORE INTO project_services(project_id,support_service_id) VALUES(?,?)')->execute([$projectId, $serviceId]);
     $usage = $db->prepare('INSERT OR IGNORE INTO project_service_rollout_objects(project_id,support_service_id,rollout_object_id) VALUES(?,?,?)');
@@ -500,9 +505,11 @@ function render_rv_view(PDO $db, int $providerId): void {
               <td>
                 <select class="form-select form-select-sm mb-1" data-f="service" aria-label="Leistung">
                   <option value="custom">Eigene Leistung (nicht im Standard)</option>
-                  <?php if ($projectData['catalog']): ?><optgroup label="Aus dem Standard-Leistungskatalog">
-                    <?php foreach ($projectData['catalog'] as $catalogId => $catalogService): ?><option value="<?=$catalogId?>"><?=e(export_class_rank($catalogService, 'RV') . ' · ' . $catalogService['name'])?></option><?php endforeach; ?>
-                  </optgroup><?php endif; ?>
+                  <?php foreach ([0 => 'Aus dem Standard-Leistungskatalog', 1 => 'Oberhalb der Projektklasse (Zusatzangebot nur dieses Regionalverbands)'] as $aboveFlag => $groupLabel):
+                    $groupServices = array_filter($projectData['catalog'], static fn(array $entry): bool => (int)!empty($entry['above_class']) === $aboveFlag);
+                    if (!$groupServices) continue; ?><optgroup label="<?=e($groupLabel)?>">
+                    <?php foreach ($groupServices as $catalogId => $catalogService): ?><option value="<?=$catalogId?>"><?=e(export_class_rank($catalogService, 'RV') . ' · ' . $catalogService['name'])?></option><?php endforeach; ?>
+                  </optgroup><?php endforeach; ?>
                 </select>
                 <div data-custom-fields>
                   <input class="form-control form-control-sm mb-1" data-f="name" placeholder="Bezeichnung der Leistung" maxlength="200" aria-label="Bezeichnung">
@@ -512,7 +519,7 @@ function render_rv_view(PDO $db, int $providerId): void {
               </td>
               <td class="small">
                 <?php foreach ($classified as $object): ?><label class="form-check mb-0"><input class="form-check-input" type="checkbox" data-object="<?=$object['id']?>"><span class="form-check-label"><?=e($object['name'])?> (<?=e($object['functional_class'])?>)</span></label><?php endforeach; ?>
-                <div class="text-secondary mt-1">Keins angehakt = alle passenden</div>
+                <div class="text-secondary mt-1">Keins angehakt = alle passenden; liegt die Leistung über der Klasse aller Rolloutobjekte: alle</div>
               </td>
               <td class="delivery-cell" data-delivery-cell data-delivery-state="open"><?php render_rv_view_delivery_fields($provider, $rvProviders, '', ''); ?></td>
               <td><input class="form-control form-control-sm" data-f="schedule" placeholder="z. B. Oktober 2026" aria-label="Termin / Zeitraum"></td>

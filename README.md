@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.79
+# Rollout-Schwerpunkte 0.1.80
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -288,6 +288,9 @@ Sobald der TPL-/PL-Import oder die Projektmatrix sie an einem Rolloutobjekt fest
 Ein Zusatzangebot darf unterhalb der Leistungsklasse liegen (der Katalog legt nur fest,
 wonach gefragt wird). Solche Zuordnungen werden beim Aufräumen nach Klassen nicht entfernt,
 ebenso wenig durch einen TPL-/PL-Import mit „Datei ist maßgeblich“.
+Erfassen lässt sich das im Importassistenten (Leistung zuordnen oder als neue Leistung mit
+Klasse anlegen) und in der RV-Sicht: Dort bietet „+ Weitere Leistung ergänzen“ auch die
+Katalogleistungen oberhalb der Projektklasse an.
 
 ### Angaben der Regionalverbände zurücksetzen
 
@@ -361,7 +364,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.79**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.80**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.

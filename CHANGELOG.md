@@ -1,5 +1,11 @@
 # Änderungsverlauf
 
+## 0.1.80
+
+- RV-Sicht: Unter „+ Weitere Leistung ergänzen“ stehen jetzt auch Katalogleistungen oberhalb der Projektklasse zur Auswahl (z. B. eine Leistung ab Klasse C in einem Projekt, dessen Rolloutobjekte nur Klasse B haben) – in einer eigenen Gruppe „Oberhalb der Projektklasse (Zusatzangebot nur dieses Regionalverbands)“. Damit lässt sich von Hand erfassen, was der Importassistent seit 0.1.78 schon übernimmt
+- Eine so ergänzte Leistung gilt an den angehakten Rolloutobjekten; ist keins angehakt, an allen Rolloutobjekten des Projekts. Die Klasse der Leistung bleibt unverändert, die übrigen Regionalverbände werden dazu nicht gefragt
+- Keine Änderung am Datenbankschema
+
 ## 0.1.79
 
 - Neu unter Import (Phase 3, beim „Stand der Rückmeldungen“): „Angaben der Regionalverbände zurücksetzen“. Entfernt die Rückmeldungen der Regionalverbände und ihre Zusatzangebote, damit sie neu erfasst werden können. Festlegungen des TPL bzw. Projekts (Rolloutobjekte, Klassen, vorgesehene Leistungen) und alle Angaben von FI und DSV bleiben unverändert
