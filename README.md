@@ -1,4 +1,4 @@
-# Rollout-Schwerpunkte 0.1.81
+# Rollout-Schwerpunkte 0.1.82
 
 Geschützte PHP-/SQLite-Webanwendung zur Planung von Schwerpunkt-Projekten,
 Rolloutobjekten und Unterstützungsleistungen durch FI, DSV und zwölf
@@ -304,6 +304,15 @@ Leistungen von Hand anhaken. Vorher entsteht automatisch eine Sicherungskopie de
 im Datenordner (`<Datenbank>.vor-rv-zuruecksetzen-<Datum>`); zum Zurückholen die Anwendung
 anhalten und die Kopie an die Stelle der Datenbankdatei legen.
 
+## Stadt-Regionalverbände
+
+Stadt-Regionalverbände (z. B. HSGV, SV Berlin) können die regionalen Unterstützungsleistungen
+grundsätzlich nicht anbieten. Sie werden in der RV-Sicht oben per Schalter als „Stadt-RV“
+gekennzeichnet. Danach erscheinen ihre offenen Felder und „Keine Bereitstellung“ in Übersicht,
+Präsentationen und Gesamtexport grau als „Stadt-RV“ und zählen in keiner Auswertung; echte
+Zusagen zählen weiterhin. Im Stand der Rückmeldungen gilt ein Stadt-RV als zurückgemeldet.
+Die Kennzeichnung liegt in `app_settings` unter `rv_city_providers` (Liste der IDs).
+
 ## Wer hat zuletzt geändert?
 
 Es gilt: Wer zuletzt etwas gesagt hat, überschreibt die Angabe des anderen –
@@ -365,7 +374,7 @@ Regel entlang der jeweiligen Klassenreihenfolge.
 
 ## Versionierung
 
-Aktueller Stand: **0.1.81**. Die Version steht ausschließlich im obersten Eintrag
+Aktueller Stand: **0.1.82**. Die Version steht ausschließlich im obersten Eintrag
 von `CHANGELOG.md` und wird oben links angezeigt; ein Klick darauf öffnet den
 Änderungsverlauf. Die dritte Stelle wird bei jeder Auslieferung automatisch
 erhöht; die erste und zweite Stelle nur auf ausdrückliche Anweisung.

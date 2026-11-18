@@ -35,10 +35,13 @@ function rv_import_status_rows(PDO $db): array {
     $rows = [];
     foreach ($db->query("SELECT id,name FROM providers WHERE type='RV' AND active=1 ORDER BY sort_order,name")->fetchAll() as $provider) {
         $entry = (array)($status[(string)$provider['id']] ?? []);
+        $city = rv_is_city((int)$provider['id']);
         $rows[] = [
             'id' => (int)$provider['id'],
             'name' => (string)$provider['name'],
-            'done' => !empty($entry['done']),
+            'city' => $city,
+            // Ein Stadt-RV gilt als zurückgemeldet: Er nimmt an der Abfrage grundsätzlich nicht teil
+            'done' => $city || !empty($entry['done']),
             'date' => (string)($entry['date'] ?? ''),
             'from' => (string)($entry['from'] ?? ''),
             'way' => (string)($entry['way'] ?? ''),
@@ -119,8 +122,8 @@ function render_rv_import_status(PDO $db): void {
         <thead><tr><th>Regionalverband</th><th class="text-center">Übernommen</th><th>Datum</th><th>Erhalten von</th><th>Weg</th><th>Bemerkung</th><th></th></tr></thead>
         <tbody>
         <?php foreach ($rows as $row): $field = 'rv_status[' . $row['id'] . ']'; ?>
-          <tr class="<?=$row['done'] ? 'table-success' : ''?>" data-rv-status-row>
-            <td class="fw-semibold text-nowrap"><?=e($row['name'])?></td>
+          <tr class="<?=$row['city'] ? 'table-secondary' : ($row['done'] ? 'table-success' : '')?>" data-rv-status-row>
+            <td class="fw-semibold text-nowrap"><?=e($row['name'])?><?php if ($row['city']): ?> <span class="badge text-bg-secondary fw-normal" title="Nimmt an der Abfrage nicht teil; zählt als zurückgemeldet. Festlegen in der RV-Sicht.">Stadt-RV</span><?php endif; ?></td>
             <td class="text-center"><input class="form-check-input matrix-check" type="checkbox" name="<?=$field?>[done]" value="1" <?=$row['done'] ? 'checked' : ''?> data-rv-status-done aria-label="<?=e('Rückmeldung ' . $row['name'] . ' übernommen')?>"></td>
             <td><input class="form-control form-control-sm" type="date" name="<?=$field?>[date]" value="<?=e($row['date'])?>" data-rv-status-date aria-label="Datum"></td>
             <td><input class="form-control form-control-sm" name="<?=$field?>[from]" value="<?=e($row['from'])?>" placeholder="Name" maxlength="120" aria-label="Erhalten von"></td>
@@ -388,8 +391,9 @@ function render_rv_view(PDO $db, int $providerId): void {
     $serviceCount = array_sum(array_map(static fn(array $p): int => count($p['services']), $data));
     $openCount = 0;
     foreach ($data as $projectData) foreach ($projectData['services'] as $service) if (!empty($service['requires_delivery_source']) && normalize_delivery_mode((string)$service['cell_mode']) === '') $openCount++;
+    $city = rv_is_city((int)$provider['id']);
     ?>
-<div class="project-matrix-page rv-view-page">
+<div class="project-matrix-page rv-view-page<?=$city ? ' rv-city' : ''?>">
   <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
     <div>
       <h1 class="page-title h2 mb-1">RV-Sicht: <?=e($provider['name'])?></h1>
@@ -404,6 +408,21 @@ function render_rv_view(PDO $db, int $providerId): void {
     </form>
   </div>
 
+  <form method="post" class="card p-3 mb-3 <?=$city ? 'bg-secondary-subtle border-secondary-subtle' : ''?>">
+    <?=csrf_field()?>
+    <input type="hidden" name="action" value="save_rv_city">
+    <input type="hidden" name="provider_id" value="<?=(int)$provider['id']?>">
+    <input type="hidden" name="city" value="0">
+    <label class="form-check form-switch mb-1"><input class="form-check-input" type="checkbox" name="city" value="1" <?=$city ? 'checked' : ''?> onchange="this.form.requestSubmit()"><span class="form-check-label fw-semibold"><?=e($provider['name'])?> ist ein Stadt-Regionalverband (Stadt-RV)</span></label>
+    <div class="small text-secondary">Ein Stadt-RV kann die regionalen Unterstützungsleistungen grundsätzlich nicht anbieten. Er bleibt in allen Übersichten und Präsentationen sichtbar, seine offenen Felder und „Keine Bereitstellung“ erscheinen aber grau als „Stadt-RV“ und zählen in keiner Auswertung (offen, keine Bereitstellung, zugesagter Anteil). Im Stand der Rückmeldungen gilt er als zurückgemeldet. Echte Zusagen, die er trotzdem macht, werden normal angezeigt und gezählt. Die RV-Datei erhält er weiterhin.</div>
+  </form>
+
+  <?php if ($city): ?>
+  <div class="alert alert-secondary small d-flex flex-wrap gap-2 align-items-center">
+    <strong>Stadt-RV</strong><span>Nimmt an der Abfrage nicht teil und gilt im Stand der Rückmeldungen als zurückgemeldet.</span>
+    <a class="ms-auto" href="?page=import#rv-stand">Stand der Rückmeldungen</a>
+  </div>
+  <?php else: ?>
   <div class="alert <?=$status && $status['done'] ? 'alert-success' : 'alert-light border'?> small d-flex flex-wrap gap-2 align-items-center">
     <?php if ($status && $status['done']): ?>
       <strong>Rückmeldung übernommen</strong><span><?=e(trim(format_date($status['date'] ?: null, '') . ($status['from'] !== '' ? ' · von ' . $status['from'] : '') . ($status['way'] !== '' ? ' · ' . $status['way'] : ''), ' ·'))?></span>
@@ -412,6 +431,7 @@ function render_rv_view(PDO $db, int $providerId): void {
     <?php endif; ?>
     <a class="ms-auto" href="?page=import#rv-stand">Stand der Rückmeldungen</a>
   </div>
+  <?php endif; ?>
 
   <div class="card p-3 mb-3 rv-view-toolbar">
     <div class="row g-3 align-items-end">
@@ -435,9 +455,9 @@ function render_rv_view(PDO $db, int $providerId): void {
         </div>
       </div>
     </div>
-    <div class="small text-secondary mt-2"><?=$serviceCount?> Leistungen, davon <span id="rv-open-count"><?=$openCount?></span> noch offen. „Pauschal“ füllt nur Felder, die noch leer sind; gespeichert wird erst mit „Speichern“.</div>
+    <div class="small text-secondary mt-2"><?=$serviceCount?> Leistungen, davon <span id="rv-open-count"><?=$openCount?></span> noch offen<?=$city ? ' (als Stadt-RV grau, zählen nicht)' : ''?>. „Pauschal“ füllt nur Felder, die noch leer sind; gespeichert wird erst mit „Speichern“.</div>
   </div>
-  <div class="delivery-legend mb-3"><span class="delivery-key delivery-self">Selbst</span><span class="delivery-key delivery-other">Anderer RV</span><span class="delivery-key delivery-external">Externer DL</span><span class="delivery-key delivery-none">Keine Bereitstellung</span><span class="delivery-key delivery-open">Noch offen</span></div>
+  <div class="delivery-legend mb-3"><span class="delivery-key delivery-self">Selbst</span><span class="delivery-key delivery-other">Anderer RV</span><span class="delivery-key delivery-external">Externer DL</span><span class="delivery-key delivery-none">Keine Bereitstellung</span><span class="delivery-key delivery-open">Noch offen</span><?php if ($city): ?><span class="delivery-key" style="background:#e4e6e8">Stadt-RV (offen / keine Bereitstellung)</span><?php endif; ?></div>
 
   <form method="post" id="rv-view-form">
     <?=csrf_field()?>

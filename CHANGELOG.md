@@ -1,5 +1,14 @@
 # Änderungsverlauf
 
+## 0.1.82
+
+- Neu: Stadt-Regionalverbände (z. B. HSGV, SV Berlin). In der RV-Sicht lässt sich ein Regionalverband oben per Schalter als „Stadt-RV“ kennzeichnen. Ein Stadt-RV kann die regionalen Unterstützungsleistungen grundsätzlich nicht anbieten und nimmt an der Abfrage nicht teil
+- Er bleibt in Übersicht, Projekt-PowerPoint, „Offene Punkte aller Projekte“ und Gesamtexport sichtbar. Offene Felder und „Keine Bereitstellung“ erscheinen dort grau mit „S“ und in der Legende als „Stadt-RV“; sie zählen in keiner Auswertung (offen, keine Bereitstellung, zugesagter Anteil, offene Punkte je Projekt und Rolloutobjekt)
+- Echte Zusagen, die ein Stadt-RV trotzdem macht, werden normal angezeigt und gezählt
+- Stand der Rückmeldungen: Ein Stadt-RV gilt als zurückgemeldet (die Zählung bleibt z. B. bei „von 12“) und erscheint grau mit dem Hinweis „Stadt-RV“, ebenso in der Gesamtstatistik-Folie. In der Übersicht steht „Stadt-RV“ unter dem Namen in der Spaltenüberschrift
+- Die RV-Datei und der E-Mail-Entwurf werden für Stadt-RV weiterhin erzeugt
+- Keine Änderung am Datenbankschema (die Kennzeichnung liegt in den Einstellungen der Anwendung)
+
 ## 0.1.81
 
 - Korrektur: Leistungen von FI und DSV gelten nicht mehr als „offen“. Sie werden zentral erbracht; ist eine Leistung an einem Rolloutobjekt vorgesehen (Projektmatrix oder TPL-/PL-Import), ist sie damit eingeplant – eine gesonderte Planungsangabe von FI bzw. DSV ist dafür nicht nötig

@@ -67,3 +67,4 @@ try {
     exit;
 }
 fi_class_registry(provider_class_levels($db, 'FI'));
+rv_city_registry(rv_city_ids_load($db));

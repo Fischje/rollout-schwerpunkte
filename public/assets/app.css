@@ -24,6 +24,7 @@ body { background:var(--spark-light); color:var(--spark-dark); }
 .delivery-cell[data-delivery-state="external"] { background:#fff4df; }
 .delivery-cell[data-delivery-state="none"] { background:#f2f2f2; }
 .delivery-cell[data-delivery-state="open"] { background:#fff; }
+.rv-city .delivery-cell[data-delivery-state="open"], .rv-city .delivery-cell[data-delivery-state="none"] { background:#e4e6e8; }
 .delivery-legend { display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; }
 .delivery-key { border:1px solid #d1d5db; border-radius:999px; padding:.28rem .7rem; font-size:.78rem; font-weight:600; }
 .delivery-self { background:#eaf6ee; }
@@ -90,6 +91,7 @@ body { background:var(--spark-light); color:var(--spark-dark); }
 .ov-open { background:#fff7cc; color:#7a5d00; border-color:#f1d75c; }
 .ov-none { background:#fde4e4; color:#9b1c1c; border-color:#f3b8b8; }
 .ov-na, .ov-empty { background:transparent; color:#b4b8bd; }
+.ov-city { background:#d4d6d9; color:#4a4f55; border-color:#bfc2c6; }
 .ov-legend { display:inline-flex; align-items:center; gap:.35rem; border:1px solid #e3e5e8; border-radius:999px; padding:.15rem .6rem .15rem .2rem; background:#fff; }
 .ov-legend .ov-cell { width:1.4rem; height:1.4rem; font-size:.75rem; }
 .ov-chip { display:inline-block; background:#f1f2f4; border-radius:999px; padding:.1rem .55rem; margin:0 .25rem .25rem 0; }

@@ -404,10 +404,20 @@ function service_provider_summary(array $service): string {
 
 /**
  * Stand der Leistungserbringung eines Leistungserbringers für eine Rolloutleistung.
- * Rückgabe: ['key'=>…, 'label'=>…, 'by'=>…]; key ∈ self, other_rv, external, none, open, planned, not_planned, na.
- * Als Lücke gelten „open“ (keine Angabe) und „none“ (keine Bereitstellung).
+ * Rückgabe: ['key'=>…, 'label'=>…, 'by'=>…]; key ∈ self, other_rv, external, none, open, city, planned, not_planned, na.
+ * Als Lücke gelten „open“ (keine Angabe) und „none“ (keine Bereitstellung). „city“: Stadt-Regionalverband ohne Zusage,
+ * zählt weder als Lücke noch als erforderliche Angabe.
  */
 function service_provision_status(array $service, array $provider, ?array $cell, bool $applicable): array {
+    $status = service_provision_status_raw($service, $provider, $cell, $applicable);
+    // Stadt-Regionalverband: Ohne echte Zusage nimmt er an der Abfrage nicht teil (grau, zählt nicht als Lücke)
+    if (($provider['type'] ?? '') === 'RV' && in_array($status['key'], ['open', 'none'], true) && rv_is_city((int)($provider['id'] ?? 0))) {
+        return ['key' => 'city', 'label' => 'Stadt-RV – nimmt an der Abfrage nicht teil', 'by' => ''];
+    }
+    return $status;
+}
+
+function service_provision_status_raw(array $service, array $provider, ?array $cell, bool $applicable): array {
     if (!$applicable) return ['key' => 'na', 'label' => 'Nicht relevant', 'by' => ''];
     $type = (string)($provider['type'] ?? '');
     $name = (string)($provider['name'] ?? '');
@@ -804,4 +814,39 @@ function provider_mismatch_reason(array $service, string $providerType, ?array $
     $objectClass = (string)($classObject[$field] ?? '');
     if ($objectClass === '') return 'Die Leistung ' . $name . ' gilt ab Klasse ' . $area . ' ' . $codes[0] . ', aber ' . ($objectName !== '' ? 'das Rolloutobjekt „' . $objectName . '“ hat' : 'kein Rolloutobjekt des Projekts hat') . ' eine Klasse ' . $area . '.' . $hint;
     return 'Die Leistung ' . $name . ' gilt erst ab Klasse ' . $area . ' ' . $codes[0] . '. ' . $where . ' nur Klasse ' . $objectClass . ' – die Leistung ist dort also gar nicht vorgesehen.' . $hint;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Stadt-Regionalverbände (z. B. HSGV, SV Berlin): können die regionalen Unterstützungsleistungen grundsätzlich
+// nicht anbieten. Sie bleiben sichtbar, ihre offenen Felder erscheinen grau („Stadt-RV“) und zählen in keiner
+// Auswertung. Gespeichert als JSON-Liste der Provider-IDs in app_settings (keine Schemaänderung).
+// ---------------------------------------------------------------------------------------------
+
+const RV_CITY_KEY = 'rv_city_providers';
+
+/** Stadt-RV dieser Anfrage: mit $ids setzen, ohne lesen. Rückgabe [Provider-ID => true]. */
+function rv_city_registry(?array $ids = null): array {
+    static $registry = [];
+    if ($ids !== null) {
+        $registry = [];
+        foreach ($ids as $id) $registry[(int)$id] = true;
+    }
+    return $registry;
+}
+
+function rv_city_ids_load(PDO $db): array {
+    $ids = json_decode(app_setting($db, RV_CITY_KEY, '[]'), true);
+    return is_array($ids) ? array_values(array_unique(array_map('intval', $ids))) : [];
+}
+
+function rv_is_city(int $providerId): bool {
+    return isset(rv_city_registry()[$providerId]);
+}
+
+function rv_city_set(PDO $db, int $providerId, bool $city): void {
+    $ids = array_values(array_diff(rv_city_ids_load($db), [$providerId]));
+    if ($city) $ids[] = $providerId;
+    sort($ids);
+    set_app_setting($db, RV_CITY_KEY, json_encode($ids));
+    rv_city_registry($ids);
 }

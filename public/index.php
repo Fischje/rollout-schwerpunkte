@@ -219,6 +219,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('success', ($parts ? implode(', ', $parts) : 'Es war nichts ausgewählt') . '. Sicherungskopie: ' . basename($result['backup']) . ' (im Datenordner der Anwendung).');
             redirect('?page=import#rv-stand');
         }
+        if ($action === 'save_rv_city') {
+            $providerId = (int)($_POST['provider_id'] ?? 0);
+            $stmt = $db->prepare("SELECT name FROM providers WHERE id=? AND type='RV'");
+            $stmt->execute([$providerId]);
+            $name = $stmt->fetchColumn();
+            if ($name === false) throw new RuntimeException('Der Regionalverband wurde nicht gefunden.');
+            $city = post_string('city') === '1';
+            rv_city_set($db, $providerId, $city);
+            flash('success', $name . ($city ? ' ist jetzt als Stadt-RV gekennzeichnet: offene Angaben erscheinen grau und zählen in keiner Auswertung.' : ' ist nicht mehr als Stadt-RV gekennzeichnet.'));
+            redirect('?page=rv-view&provider_id=' . $providerId);
+        }
         if ($action === 'save_rv_view') {
             $providerId = (int)($_POST['provider_id'] ?? 0);
             $payload = json_decode((string)($_POST['payload'] ?? ''), true);
@@ -903,7 +914,7 @@ function overview_project_data(PDO $db,int $projectId): array {
         $targets=(array)$service['provider_targets'];
         if(in_array('RV',$targets,true)&&service_regional_capable($service)){
             $cells=[];$gaps=[];$committed=0;$required=0;$delivery=$deliveryMap[(int)$service['id']];
-            foreach($rvProviders as $provider){if(!$delivery['rv_required']){$cells[(int)$provider['id']]=['key'=>'central','label'=>'Zentral durch das Projekt erbracht','by'=>'','partner'=>''];continue;}if(!rv_service_asked($additional,(int)$service['id'],(int)$provider['id'])){$cells[(int)$provider['id']]=['key'=>'extra','label'=>'Nicht abgefragt – Zusatzangebot von '.implode(', ',array_map(fn($id)=>$rvNames[$id]??'',array_keys($additional[(int)$service['id']]))),'by'=>'','partner'=>''];continue;}$applicable=service_applies_to_provider($service,$provider,$projectClassObject)||(isset($additional[(int)$service['id']][(int)$provider['id']])&&in_array('RV',(array)$service['provider_targets'],true));$status=service_provision_status($service,$provider,$matrix[(int)$service['id']][(int)$provider['id']]??null,$applicable);$cells[(int)$provider['id']]=$status+['partner'=>(string)($matrix[(int)$service['id']][(int)$provider['id']]['delivery_partner']??''),'origin'=>origin_text($matrix[(int)$service['id']][(int)$provider['id']]['origin']??null,$matrix[(int)$service['id']][(int)$provider['id']]['origin_at']??null)];if($status['key']==='na')continue;$required++;if(in_array($status['key'],['open','none'],true))$gaps[(int)$provider['id']]=$status['key'];else$committed++;}
+            foreach($rvProviders as $provider){if(!$delivery['rv_required']){$cells[(int)$provider['id']]=['key'=>'central','label'=>'Zentral durch das Projekt erbracht','by'=>'','partner'=>''];continue;}if(!rv_service_asked($additional,(int)$service['id'],(int)$provider['id'])){$cells[(int)$provider['id']]=['key'=>'extra','label'=>'Nicht abgefragt – Zusatzangebot von '.implode(', ',array_map(fn($id)=>$rvNames[$id]??'',array_keys($additional[(int)$service['id']]))),'by'=>'','partner'=>''];continue;}$applicable=service_applies_to_provider($service,$provider,$projectClassObject)||(isset($additional[(int)$service['id']][(int)$provider['id']])&&in_array('RV',(array)$service['provider_targets'],true));$status=service_provision_status($service,$provider,$matrix[(int)$service['id']][(int)$provider['id']]??null,$applicable);$cells[(int)$provider['id']]=$status+['partner'=>(string)($matrix[(int)$service['id']][(int)$provider['id']]['delivery_partner']??''),'origin'=>origin_text($matrix[(int)$service['id']][(int)$provider['id']]['origin']??null,$matrix[(int)$service['id']][(int)$provider['id']]['origin_at']??null)];if($status['key']==='na'||$status['key']==='city')continue;$required++;if(in_array($status['key'],['open','none'],true))$gaps[(int)$provider['id']]=$status['key'];else$committed++;}
             $rv[]=['service'=>$service,'class'=>$classRank($service,'functional'),'cells'=>$cells,'gaps'=>$gaps,'committed'=>$committed,'required'=>$required,'objects'=>array_keys($usage[(int)$service['id']]??[]),'regional_objects'=>$delivery['regional'],'central_objects'=>$delivery['central'],'rv_required'=>$delivery['rv_required'],'extra_by'=>isset($additional[(int)$service['id']])?array_values(array_intersect_key($rvNames,$additional[(int)$service['id']])):null];
         }
         foreach([['FI',$fi,'technical','fi_class_code'],['DSV',$dsv,'dsv','dsv_class_code']] as [$type,$provider,$dimension,$objectField]){
@@ -930,7 +941,7 @@ function pptx_status_styles(): array {
     return [
         'self'=>['009864','FFFFFF','✓','Zugesagt – selbst'],'other_rv'=>['2C57D2','FFFFFF','↪','Über anderen RV'],
         'external'=>['00ACD3','FFFFFF','E','Externer Dienstleister'],'open'=>['FFC900','000000','?','Offen'],'none'=>['EE0000','FFFFFF','✕','Keine Bereitstellung'],
-        'central'=>['D9D9D9','000000','Z','Zentral'],'na'=>['F2F2F2','7F7F7F','–','Nicht relevant'],'extra'=>['FFFFFF','A6A6A6','·','Nicht abgefragt (Zusatz)'],
+        'central'=>['D9D9D9','000000','Z','Zentral'],'na'=>['F2F2F2','7F7F7F','–','Nicht relevant'],'extra'=>['FFFFFF','A6A6A6','·','Nicht abgefragt (Zusatz)'],'city'=>['A6A6A6','FFFFFF','S','Stadt-RV'],
         'planned'=>['009864','FFFFFF','✓','Vorgesehen'],'fi_none'=>['FFFFFF','7F7F7F','·','Nicht vorgesehen'],
     ];
 }
@@ -1007,7 +1018,7 @@ function download_project_pptx(PDO $db,int $projectId): never {
     if(!$regional)$bankRows[]=[['text'=>'Keine regional erbrachten Leistungen','color'=>'7F7F7F','span'=>2+$span]];
     foreach($regional as $entry){$row=[['text'=>$short((string)$entry['service']['name'].($entry['extra_by']!==null?' (Zusatz '.implode(', ',$entry['extra_by']).')':''),48)],['text'=>$entry['class']==='~'?'':(string)$entry['class'],'align'=>'ctr']];foreach($rvProviders as $provider){$cell=$entry['cells'][(int)$provider['id']]??['key'=>'na'];[$fill,$color,$symbol]=$styles[$cell['key']]??$styles['open'];$row[]=['text'=>$symbol,'fill'=>$fill,'color'=>$color,'align'=>'ctr','bold'=>true];}$gaps=count($entry['gaps']);$row[]=['text'=>$gaps?(string)$gaps:'✓','align'=>'ctr','bold'=>true,'color'=>$gaps?'EE0000':'009864'];$bankRows[]=$row;}
     $bankHead=['_height'=>340000,['text'=>'Leistung','bold'=>true,'fill'=>'F2F2F2'],['text'=>'ab','bold'=>true,'fill'=>'F2F2F2','align'=>'ctr']];foreach($rvProviders as $provider)$bankHead[]=['text'=>(string)$provider['name'],'bold'=>true,'fill'=>'F2F2F2','align'=>'ctr','size'=>7];$bankHead[]=['text'=>'offen','bold'=>true,'fill'=>'F2F2F2','align'=>'ctr','size'=>7];
-    $rowH=230000;$tableY=$Y+330000;$capacity=intdiv($BOTTOM-$tableY-340000,$rowH);$pages=pptx_paginate($bankRows,$capacity,$capacity);$bankLegend=$legend($Y+20000,['self','other_rv','external','open','none','na','extra']);
+    $rowH=230000;$tableY=$Y+330000;$capacity=intdiv($BOTTOM-$tableY-340000,$rowH);$pages=pptx_paginate($bankRows,$capacity,$capacity);$bankLegend=$legend($Y+20000,['self','other_rv','external','open','none','na','extra','city']);
     $cols=array_merge([$nameW,$classW],array_fill(0,count($rvProviders),$rvW),[$openW]);
     foreach($pages as $i=>$rows){$rows=array_map(static function(array $row):array{$cont=!empty($row['_cont']);unset($row['_block_head'],$row['_cont']);if($cont)$row[0]['text'].=' (Fortsetzung)';return $row;},$rows);$deck->addSlide($topline,$pageTitle('Bankfachliche Leistungen',$i,count($pages)),'Zentral: '.$plural(count($central),'Leistung','Leistungen').' · Regional: '.$plural(count($regional),'Leistung','Leistungen').' · '.$plural($openPoints,'offene Angabe','offene Angaben'),$source,$bankLegend.$deck->table($X,$tableY,$cols,array_merge([$bankHead],$rows),$rowH,8));}
 
@@ -1123,7 +1134,7 @@ function download_open_points_pptx(PDO $db): never {
     $rvCols=[$rightW-1150000-2*620000,1150000,620000,620000];
     $rvRows=[];
     foreach($statusRows as $status){$counts=$byProvider[$status['id']]??[];$done=$status['done'];
-        $rvRows[]=[['text'=>$status['name']],['text'=>$done?'✓ '.format_date($status['date'],''):'ausstehend','align'=>'ctr','fill'=>$done?'009864':'FFC900','color'=>$done?'FFFFFF':'000000','bold'=>true],$cell((int)($counts['open']??0),'B38D00'),$cell((int)($counts['none']??0),'EE0000')];}
+        $rvRows[]=[['text'=>$status['name']],$status['city']?['text'=>'Stadt-RV','align'=>'ctr','fill'=>'A6A6A6','color'=>'FFFFFF','bold'=>true]:['text'=>$done?'✓ '.format_date($status['date'],''):'ausstehend','align'=>'ctr','fill'=>$done?'009864':'FFC900','color'=>$done?'FFFFFF':'000000','bold'=>true],$cell((int)($counts['open']??0),'B38D00'),$cell((int)($counts['none']??0),'EE0000')];}
     if(!$rvRows)$rvRows[]=[['text'=>'Keine aktiven Regionalverbände','span'=>4,'color'=>'7F7F7F']];
     $statSub=$returned.' von '.count($statusRows).' RV zurückgemeldet · '.$plural(count($seen),'Projekt','Projekte').' mit offenen Punkten';
     foreach($statPages as $i=>$indexes){
@@ -1138,7 +1149,7 @@ function download_open_points_pptx(PDO $db): never {
     }
 
     // Projektfolien
-    $projectLegend=$legend($Y+20000,['self','other_rv','external','open','none','na','extra']);
+    $projectLegend=$legend($Y+20000,['self','other_rv','external','open','none','na','extra','city']);
     foreach($projectSlides as $slide)$deck->addSlide($topline,$slide['title'],$slide['sub'],$source,$projectLegend.$deck->table($X,$tableY,$cols,array_merge([$head],$slide['rows']),$rowH,8));
     if(!$projectSlides)$deck->addSlide($topline,'Keine offenen Punkte','Alle Projekte sind vollständig',$source,$deck->box($X,$Y,$W,600000,'E5F5EF',[['text'=>'Für alle Projekte liegen die Angaben der Regionalverbände vollständig vor; FI- und DSV-Leistungen sind geplant.','size'=>12,'color'=>'00764E']],['round'=>true,'name'=>'Hinweis']));
 
@@ -1263,7 +1274,7 @@ function download_overview_gaps(PDO $db,int $projectId): never {
 
 function render_overview(PDO $db,int $projectId,int $objectId=0,string $area='ALL'): void {
     $projects=$db->query('SELECT id,name FROM projects ORDER BY name')->fetchAll();
-    $statusView=['self'=>['✓','ov-self','Zugesagt – selbst'],'other_rv'=>['↪','ov-other','Über anderen Regionalverband'],'external'=>['E','ov-external','Externer Dienstleister'],'none'=>['✕','ov-none','Keine Bereitstellung'],'open'=>['?','ov-open','Offen – noch keine Angabe'],'central'=>['Z','ov-central','Zentral durch das Projekt'],'na'=>['–','ov-na','Für diese Klasse nicht relevant'],'extra'=>['·','ov-na','Nicht abgefragt – Zusatzangebot eines anderen RV']];
+    $statusView=['self'=>['✓','ov-self','Zugesagt – selbst'],'other_rv'=>['↪','ov-other','Über anderen Regionalverband'],'external'=>['E','ov-external','Externer Dienstleister'],'none'=>['✕','ov-none','Keine Bereitstellung'],'open'=>['?','ov-open','Offen – noch keine Angabe'],'central'=>['Z','ov-central','Zentral durch das Projekt'],'na'=>['–','ov-na','Für diese Klasse nicht relevant'],'extra'=>['·','ov-na','Nicht abgefragt – Zusatzangebot eines anderen RV'],'city'=>['S','ov-city','Stadt-RV – nimmt an der Abfrage nicht teil']];
     $legend=static function(array $keys)use($statusView):void{echo '<div class="d-flex flex-wrap gap-2 small mb-3">';foreach($keys as $key){[$symbol,$class,$label]=$statusView[$key];echo '<span class="ov-legend"><span class="ov-cell '.$class.'">'.e($symbol).'</span> '.e($label).'</span>';}echo '</div>';};
     $area=normalize_view_area($area,true);$allObjects=[];if($projectId){$stmt=$db->prepare('SELECT * FROM rollout_objects WHERE project_id=? ORDER BY start_date,name');$stmt->execute([$projectId]);$allObjects=enrich_rollout_objects($db,$stmt->fetchAll());}
 ?>
@@ -1290,9 +1301,9 @@ function render_overview(PDO $db,int $projectId,int $objectId=0,string $area='AL
 <?php foreach($central as $entry):?><tr><td><strong><?=e($entry['service']['name'])?></strong><div class="d-flex flex-wrap gap-1 mt-1"><?=service_flag_badges($entry['service'])?><?=$dupFor($entry['service'])?></div></td><td><?=$entry['class']!=='~'?e($entry['class']):'–'?></td><?php if(!$objectId):?><td class="small"><?=$chips($entry,$entry['central_objects'])?></td><?php endif;?></tr><?php endforeach;?></tbody></table></div><?php endif;?></section><?php endif;?>
 
 <?php if($show('regional')):?><section class="card p-3 p-lg-4 mb-4 ov-block ov-block-regional"><h2 class="h5 mb-1">Regionalverbände (regional)</h2><p class="small text-secondary">Je regional erbrachter Leistung und Regionalverband: Wer stellt die Leistung bereit? Fahren Sie über ein Feld für Details (z. B. den übernehmenden Regionalverband oder den externen Dienstleister).</p>
-<?php $legend(['self','other_rv','external','open','none','na','extra']);?>
+<?php $legend(['self','other_rv','external','open','none','na','extra','city']);?>
 <?php if(!$regional):?><p class="text-secondary mb-0">Keine regional erbrachten bankfachlichen Leistungen.</p><?php else:?>
-<div class="table-responsive"><table class="table table-sm align-middle ov-table mb-0"><thead><tr><th style="min-width:18rem">Leistung</th><?php if(!$objectId):?><th style="min-width:14rem">Regional an Rolloutobjekten</th><?php endif;?><?php foreach($data['rv_providers'] as $provider):?><th class="text-center ov-rv-head" title="<?=e($provider['name'])?>"><?=e($provider['name'])?></th><?php endforeach;?><th class="text-center">Offen</th></tr></thead><tbody>
+<div class="table-responsive"><table class="table table-sm align-middle ov-table mb-0"><thead><tr><th style="min-width:18rem">Leistung</th><?php if(!$objectId):?><th style="min-width:14rem">Regional an Rolloutobjekten</th><?php endif;?><?php foreach($data['rv_providers'] as $provider):?><th class="text-center ov-rv-head" title="<?=e($provider['name'].(rv_is_city((int)$provider['id'])?' – Stadt-RV':''))?>"><?=e($provider['name'])?><?php if(rv_is_city((int)$provider['id'])):?><div class="fw-normal text-secondary">Stadt-RV</div><?php endif;?></th><?php endforeach;?><th class="text-center">Offen</th></tr></thead><tbody>
 <?php foreach($regional as $entry):$service=$entry['service'];?><tr class="<?=$entry['gaps']?'ov-row-gap':''?>"><td><strong><?=e($service['name'])?></strong><?php if($entry['extra_by']!==null):?> <span class="badge text-bg-light border" title="Nur von diesen Regionalverbänden zusätzlich angeboten; die übrigen werden dazu nicht gefragt.">Zusatzangebot <?=e(implode(', ',$entry['extra_by']))?></span><?php endif;?><div class="d-flex flex-wrap gap-1 mt-1"><?=$entry['class']!=='~'?'<span class="badge text-bg-light border">ab '.e($entry['class']).'</span>':''?><?=service_flag_badges($service)?><?=$dupFor($service)?></div></td>
 <?php if(!$objectId):?><td class="small"><?=$chips($entry,$entry['regional_objects'])?></td><?php endif;?>
 <?php foreach($data['rv_providers'] as $provider):$cell=$entry['cells'][(int)$provider['id']];[$symbol,$class,$label]=$statusView[$cell['key']]??$statusView['open'];$title=$provider['name'].': '.$cell['label'].($cell['by']!==''&&$cell['key']!=='self'?' – '.$cell['by']:'').(($cell['origin']??'')!==''?' ('.$cell['origin'].')':'');?><td class="text-center"><span class="ov-cell <?=$class?>" title="<?=e($title)?>" aria-label="<?=e($title)?>"><?=e($symbol)?></span></td><?php endforeach;?>
